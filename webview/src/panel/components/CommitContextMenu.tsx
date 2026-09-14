@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { bridge, bridgeWithProgress } from "../../shared/bridge";
 import { usePanelStore } from "../../shared/store/panel-store";
@@ -60,6 +60,24 @@ function IconRevert() {
   );
 }
 
+function IconSquash() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M4 2.5v3c0 1.1.9 2 2 2h4c1.1 0 2 .9 2 2v4"
+        stroke="currentColor"
+        strokeLinecap="round"
+      />
+      <path
+        d="m9.5 11.5 2.5 2.5 2.5-2.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function IconBranch() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -100,6 +118,8 @@ export function CommitContextMenu({
 }: CommitContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const currentBranch = usePanelStore((s) => s.currentBranch);
+  const allCommits = usePanelStore((s) => s.commits);
+  const selectedCommitHashes = usePanelStore((s) => s.selectedCommitHashes);
   const [position, setPosition] = useState<{
     top: number;
     left: number;
@@ -107,6 +127,22 @@ export function CommitContextMenu({
   const [isRebasing, setIsRebasing] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [isCherryPicking, setIsCherryPicking] = useState(false);
+  const [squashDialogOpen, setSquashDialogOpen] = useState(false);
+  const [squashMessage, setSquashMessage] = useState("");
+  const [squashError, setSquashError] = useState("");
+
+  const selectedCommits = useMemo(() => {
+    const hashes = selectedCommitHashes.includes(commit.hash)
+      ? selectedCommitHashes
+      : [commit.hash];
+    const selected = new Set(hashes);
+    return allCommits.filter((candidate) => selected.has(candidate.hash));
+  }, [allCommits, selectedCommitHashes, commit.hash]);
+
+  const squashOrder = useMemo(
+    () => [...selectedCommits].reverse(),
+    [selectedCommits],
+  );
 
   // Query rebase/merge/cherry-pick state to determine if Drop Commit should be disabled
   useEffect(() => {
@@ -276,6 +312,43 @@ export function CommitContextMenu({
     }
   };
 
+  const handleSquash = async () => {
+    const defaultMessage = squashOrder
+      .map((candidate) =>
+        [candidate.subject, candidate.body].filter(Boolean).join("\n"),
+      )
+      .join("\n\n");
+    setSquashMessage(defaultMessage);
+    setSquashError("");
+    setSquashDialogOpen(true);
+  };
+
+  const handleConfirmSquash = async () => {
+    const message = squashMessage.trim();
+    if (!message) {
+      setSquashError("Commit message cannot be empty");
+      return;
+    }
+    try {
+      await bridgeWithProgress("squashCommit", {
+        hashes: squashOrder.map((candidate) => candidate.hash),
+        message,
+      });
+      setSquashDialogOpen(false);
+      onClose();
+    } catch (err) {
+      console.error("Squash commit failed:", err);
+      setSquashError(
+        err instanceof Error ? err.message : "Squash commits failed",
+      );
+    }
+  };
+
+  const handleCancelSquash = () => {
+    setSquashDialogOpen(false);
+    onClose();
+  };
+
   const handleDropCommit = async () => {
     onClose();
     try {
@@ -345,6 +418,14 @@ export function CommitContextMenu({
   // Drop Commit is disabled when in detached HEAD, rebasing, merging, or cherry-picking
   const isDropCommitDisabled =
     !currentBranch || isRebasing || isMerging || isCherryPicking;
+  const isSquashCommitDisabled =
+    isDropCommitDisabled ||
+    squashOrder.length === 0 ||
+    squashOrder.some((candidate) => candidate.parents.length !== 1) ||
+    squashOrder.some(
+      (candidate, index) =>
+        index > 0 && candidate.parents[0] !== squashOrder[index - 1].hash,
+    );
 
   const items: {
     label: string;
@@ -380,6 +461,12 @@ export function CommitContextMenu({
       label: "Reset to Here (Hard)...",
       action: handleResetHard,
       icon: <IconRevert />,
+    },
+    {
+      label: "Squash Commits...",
+      action: handleSquash,
+      icon: <IconSquash />,
+      disabled: isSquashCommitDisabled,
     },
     { label: "Revert Commit", action: handleRevert, icon: <IconRevert /> },
     {
@@ -433,6 +520,52 @@ export function CommitContextMenu({
             {item.label}
           </div>
         ),
+      )}
+      {squashDialogOpen && (
+        <div
+          className="squash-message-modal"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) handleCancelSquash();
+          }}
+        >
+          <div
+            className="squash-message-dialog"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="squash-message-dialog-title">
+              Squashed Commit Message
+            </div>
+            <div className="squash-message-dialog-description">
+              Edit message for {squashOrder.length} squashed commit
+              {squashOrder.length === 1 ? "" : "s"}
+            </div>
+            <textarea
+              className="squash-message-editor"
+              value={squashMessage}
+              onChange={(e) => {
+                setSquashMessage(e.target.value);
+                setSquashError("");
+              }}
+              autoFocus
+              spellCheck={false}
+            />
+            {squashError && (
+              <div className="squash-message-error">{squashError}</div>
+            )}
+            <div className="squash-message-dialog-actions">
+              <button type="button" onClick={handleCancelSquash}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="squash-message-confirm"
+                onClick={handleConfirmSquash}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -641,7 +641,16 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("showConfirmMessage", async (params) => {
-    const message = params.message as string;
+    const message = typeof params.message === "string" ? params.message : "";
+    if (!message.trim()) {
+      return {
+        success: false,
+        error: {
+          code: ErrorCode.GIT_COMMAND_FAILED,
+          message: "Squashed commit message cannot be empty",
+        },
+      };
+    }
     const confirmLabel = (params.confirmLabel as string) || "OK";
     const result = await vscode.window.showWarningMessage(
       message,
@@ -944,6 +953,34 @@ export async function activate(context: vscode.ExtensionContext) {
     return withProgress(messageRouter, async () => {
       await gitService.revertCommit(hash);
       messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+      return { success: true };
+    });
+  });
+
+  messageRouter.handle("squashCommit", async (params) => {
+    if (!gitService) return NOT_GIT_REPO;
+
+    const hashes = Array.isArray(params.hashes)
+      ? (params.hashes as string[])
+      : params.hash
+        ? [params.hash as string]
+        : [];
+    if (
+      hashes.length === 0 ||
+      hashes.some((hash) => !/^[0-9a-f]{40}$/i.test(hash))
+    ) {
+      return {
+        success: false,
+        error: { code: ErrorCode.INVALID_REF, message: "Invalid commit hash" },
+      };
+    }
+
+    const message = params.message as string;
+
+    return withProgress(messageRouter, async () => {
+      await gitService.squashCommits(hashes, message);
+      messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+      messageRouter.broadcastEvent("commitStateChanged", {});
       return { success: true };
     });
   });

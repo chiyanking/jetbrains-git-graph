@@ -66,6 +66,7 @@ export class GitService {
   private async execGit(
     args: string[],
     maxBuffer = MAX_BUFFER,
+    envOverrides: NodeJS.ProcessEnv = {},
   ): Promise<string> {
     const { stdout } = await execFileAsync("git", args, {
       cwd: this.cwd,
@@ -74,6 +75,7 @@ export class GitService {
         ...process.env,
         LC_ALL: "C",
         GIT_TERMINAL_PROMPT: "0",
+        ...envOverrides,
       },
     });
     return stdout;
@@ -817,6 +819,194 @@ export class GitService {
 
   async revertCommit(hash: string): Promise<void> {
     await this.execGit(["revert", "--no-edit", hash]);
+    this.invalidateCache();
+  }
+
+  /** Squash a contiguous chain of commits into its oldest selected commit. */
+  async squashCommits(hashes: string[], message: string): Promise<void> {
+    if (hashes.length === 0) {
+      throw new Error("At least one commit must be selected");
+    }
+    if (!message.trim()) {
+      throw new Error("Squashed commit message cannot be empty");
+    }
+
+    const headHash = (await this.execGit(["rev-parse", "HEAD"])).trim();
+    const currentBranch = await this.getCurrentBranch();
+    if (!currentBranch) {
+      throw new Error("Cannot squash commits in detached HEAD state");
+    }
+
+    const selectedHashes = [...new Set(hashes)];
+    const parentByHash = new Map<string, string>();
+    for (const hash of selectedHashes) {
+      const parents = await this.getCommitParents(hash);
+      if (parents.length === 0) {
+        throw new Error("The initial commit cannot be part of a squash");
+      }
+      if (parents.length > 1) {
+        throw new Error("Merge commits cannot be squashed");
+      }
+      parentByHash.set(hash, parents[0]);
+
+      // Every selected commit must be reachable from the checked-out branch.
+      await this.execGit(["merge-base", "--is-ancestor", hash, headHash]);
+    }
+
+    const selectedSet = new Set(selectedHashes);
+    const oldestCandidates = selectedHashes.filter(
+      (hash) => !selectedSet.has(parentByHash.get(hash) ?? ""),
+    );
+    if (oldestCandidates.length !== 1) {
+      throw new Error(
+        "Selected commits must form one contiguous history chain",
+      );
+    }
+
+    const oldestHash = oldestCandidates[0];
+    const orderedHashes: string[] = [];
+    let currentHash: string | undefined = oldestHash;
+    while (currentHash) {
+      orderedHashes.push(currentHash);
+      const next = selectedHashes.find(
+        (hash) => parentByHash.get(hash) === currentHash,
+      );
+      currentHash = next;
+    }
+    if (orderedHashes.length !== selectedHashes.length) {
+      throw new Error(
+        "Selected commits must form one contiguous history chain",
+      );
+    }
+
+    const oldestParent = parentByHash.get(oldestHash);
+    if (!oldestParent) {
+      throw new Error("Unable to resolve the selected commit parent");
+    }
+
+    const status = await this.execGit(["status", "--porcelain"]);
+    const isDirty = status.trim().length > 0;
+    if (isDirty) {
+      await this.execGit([
+        "stash",
+        "push",
+        "-u",
+        "-m",
+        "squash-commit-autostash",
+      ]);
+    }
+
+    const targetHashes = orderedHashes.map((hash) =>
+      this.execGit(["rev-parse", hash]),
+    );
+    const resolvedHashes = (await Promise.all(targetHashes)).map((hash) =>
+      hash.trim(),
+    );
+    const sequenceEditorPath = path.join(
+      os.tmpdir(),
+      `squash-sequence-editor-${process.pid}-${Date.now()}.js`,
+    );
+    const messageEditorPath = path.join(
+      os.tmpdir(),
+      `squash-message-editor-${process.pid}-${Date.now()}.js`,
+    );
+    const sequenceEditorScript = `#!/usr/bin/env node
+const fs = require("node:fs");
+const { execFileSync } = require("node:child_process");
+const todoPath = process.argv[2];
+const targets = new Set(JSON.parse(process.env.JETGIT_SQUASH_HASHES || "[]"));
+const oldestHash = process.env.JETGIT_SQUASH_OLDEST_HASH;
+if (!todoPath || targets.size === 0 || !oldestHash) process.exit(2);
+const lines = fs.readFileSync(todoPath, "utf8").split(/\\r?\\n/);
+let foundOldest = false;
+const foundTargets = new Set();
+for (let i = 0; i < lines.length; i++) {
+  const match = lines[i].match(/^(pick)\\s+(\\S+)(\\s.*)?$/);
+  if (!match) continue;
+  let resolved;
+  try {
+    resolved = execFileSync("git", ["rev-parse", match[2]], {
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    continue;
+  }
+  if (targets.has(resolved)) {
+    foundTargets.add(resolved);
+    if (resolved === oldestHash) {
+      foundOldest = true;
+    } else if (foundOldest) {
+      lines[i] = "squash " + match[2] + (match[3] || "");
+    } else {
+      process.exit(4);
+    }
+  }
+}
+if (!foundOldest || foundTargets.size !== targets.size) process.exit(3);
+fs.writeFileSync(todoPath, lines.join("\\n"));
+`;
+    const messageEditorScript = `#!/usr/bin/env node
+const fs = require("node:fs");
+const messagePath = process.argv[2];
+if (!messagePath) process.exit(2);
+fs.writeFileSync(messagePath, process.env.JETGIT_SQUASH_MESSAGE || "");
+`;
+
+    try {
+      await fs.writeFile(sequenceEditorPath, sequenceEditorScript, "utf-8");
+      await fs.writeFile(messageEditorPath, messageEditorScript, "utf-8");
+      await fs.chmod(sequenceEditorPath, 0o700);
+      await fs.chmod(messageEditorPath, 0o700);
+      const parentParents = await this.getCommitParents(oldestParent);
+      const rebaseArgs = [
+        "-c",
+        `sequence.editor=${sequenceEditorPath}`,
+        "-c",
+        `core.editor=${messageEditorPath}`,
+        "rebase",
+        "-i",
+        "--rebase-merges",
+      ];
+      if (parentParents.length === 0) {
+        rebaseArgs.push("--root");
+      } else {
+        rebaseArgs.push(`${oldestParent}^`);
+      }
+      await this.execGit(rebaseArgs, MAX_BUFFER, {
+        JETGIT_SQUASH_HASHES: JSON.stringify(resolvedHashes),
+        JETGIT_SQUASH_OLDEST_HASH: resolvedHashes[0],
+        JETGIT_SQUASH_MESSAGE: message,
+      });
+    } catch (rebaseErr) {
+      try {
+        await this.execGit(["rebase", "--abort"]);
+      } catch {
+        // Ignore abort errors and preserve the original failure.
+      }
+      if (isDirty) {
+        try {
+          await this.execGit(["stash", "pop"]);
+        } catch {
+          // The original operation error is more useful to the caller.
+        }
+      }
+      throw rebaseErr;
+    } finally {
+      try {
+        await fs.unlink(sequenceEditorPath);
+      } catch {
+        // Ignore temporary editor cleanup errors.
+      }
+      try {
+        await fs.unlink(messageEditorPath);
+      } catch {
+        // Ignore temporary editor cleanup errors.
+      }
+    }
+
+    if (isDirty) {
+      await this.execGit(["stash", "pop"]);
+    }
     this.invalidateCache();
   }
 
