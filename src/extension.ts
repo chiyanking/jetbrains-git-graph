@@ -192,11 +192,11 @@ export async function activate(context: vscode.ExtensionContext) {
         const result = await diffManager.nextDiff();
         if (!result) {
           void vscode.window.showInformationMessage(
-            "JetGit: No diff file list. Double-click a file in Changed Files first.",
+            "GitLog: No diff file list. Double-click a file in Changed Files first.",
           );
         }
       } else {
-        void vscode.window.showInformationMessage("JetGit: No workspace open.");
+        void vscode.window.showInformationMessage("GitLog: No workspace open.");
       }
     }),
     vscode.commands.registerCommand("git-brains.prevDiff", async () => {
@@ -204,11 +204,11 @@ export async function activate(context: vscode.ExtensionContext) {
         const result = await diffManager.prevDiff();
         if (!result) {
           void vscode.window.showInformationMessage(
-            "JetGit: No diff file list. Double-click a file in Changed Files first.",
+            "GitLog: No diff file list. Double-click a file in Changed Files first.",
           );
         }
       } else {
-        void vscode.window.showInformationMessage("JetGit: No workspace open.");
+        void vscode.window.showInformationMessage("GitLog: No workspace open.");
       }
     }),
     vscode.commands.registerCommand("git-brains.openConflicts", () => {
@@ -953,6 +953,26 @@ export async function activate(context: vscode.ExtensionContext) {
     return withProgress(messageRouter, async () => {
       await gitService.revertCommit(hash);
       messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+      return { success: true };
+    });
+  });
+
+  messageRouter.handle("editCommitMessage", async (params) => {
+    if (!gitService) return NOT_GIT_REPO;
+
+    const hash = params.hash as string;
+    const message = params.message as string;
+    if (!hash || !/^[0-9a-f]{7,40}$/i.test(hash)) {
+      return {
+        success: false,
+        error: { code: ErrorCode.INVALID_REF, message: "Invalid commit hash" },
+      };
+    }
+
+    return withProgress(messageRouter, async () => {
+      await gitService.editCommitMessage(hash, message);
+      messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+      messageRouter.broadcastEvent("commitStateChanged", {});
       return { success: true };
     });
   });

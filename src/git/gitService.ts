@@ -822,6 +822,155 @@ export class GitService {
     this.invalidateCache();
   }
 
+  /**
+   * Rewrite one reachable commit with a new message while preserving its
+   * author and the rest of the branch history.
+   *
+   * Interactive rebase is used instead of `commit --amend` so this also works
+   * for commits other than HEAD. The temporary editors make the operation
+   * non-interactive for the Webview command handler.
+   */
+  async editCommitMessage(hash: string, message: string): Promise<void> {
+    if (!message.trim()) {
+      throw new Error("Commit message cannot be empty");
+    }
+
+    const currentBranch = await this.getCurrentBranch();
+    if (!currentBranch) {
+      throw new Error("Cannot edit a commit in detached HEAD state");
+    }
+
+    const resolvedHash = (await this.execGit(["rev-parse", hash])).trim();
+    const headHash = (await this.execGit(["rev-parse", "HEAD"])).trim();
+    try {
+      await this.execGit([
+        "merge-base",
+        "--is-ancestor",
+        resolvedHash,
+        headHash,
+      ]);
+    } catch {
+      throw new Error("Commit is not reachable from the current branch");
+    }
+
+    const parents = await this.getCommitParents(resolvedHash);
+    const status = await this.execGit(["status", "--porcelain"]);
+    const isDirty = status.trim().length > 0;
+    if (isDirty) {
+      await this.execGit([
+        "stash",
+        "push",
+        "-u",
+        "-m",
+        "edit-commit-message-autostash",
+      ]);
+    }
+
+    const sequenceEditorPath = path.join(
+      os.tmpdir(),
+      `edit-commit-sequence-editor-${process.pid}-${Date.now()}.js`,
+    );
+    const messageEditorPath = path.join(
+      os.tmpdir(),
+      `edit-commit-message-editor-${process.pid}-${Date.now()}.js`,
+    );
+    const sequenceEditorScript = `#!/usr/bin/env node
+const fs = require("node:fs");
+const { execFileSync } = require("node:child_process");
+const todoPath = process.argv[2];
+const target = process.env.GITLOG_EDIT_HASH;
+if (!todoPath || !target) process.exit(2);
+const lines = fs.readFileSync(todoPath, "utf8").split(/\\r?\\n/);
+let found = false;
+for (let i = 0; i < lines.length; i++) {
+  const pick = lines[i].match(/^(pick)\\s+(\\S+)(\\s.*)?$/);
+  const merge = lines[i].match(/^(merge)\\s+(-C|-c)\\s+(\\S+)(\\s.*)?$/);
+  const token = pick ? pick[2] : merge ? merge[3] : undefined;
+  if (!token) continue;
+  let resolved;
+  try {
+    resolved = execFileSync("git", ["rev-parse", token], { encoding: "utf8" }).trim();
+  } catch {
+    continue;
+  }
+  if (resolved !== target) continue;
+  found = true;
+  if (pick) {
+    lines[i] = "reword " + pick[2] + (pick[3] || "");
+  } else if (merge) {
+    lines[i] = "merge -c " + merge[3] + (merge[4] || "");
+  }
+}
+if (!found) process.exit(3);
+fs.writeFileSync(todoPath, lines.join("\\n"));
+`;
+    const messageEditorScript = `#!/usr/bin/env node
+const fs = require("node:fs");
+const messagePath = process.argv[2];
+if (!messagePath) process.exit(2);
+fs.writeFileSync(messagePath, process.env.GITLOG_EDIT_MESSAGE || "");
+`;
+
+    try {
+      await fs.writeFile(sequenceEditorPath, sequenceEditorScript, "utf-8");
+      await fs.writeFile(messageEditorPath, messageEditorScript, "utf-8");
+      await fs.chmod(sequenceEditorPath, 0o700);
+      await fs.chmod(messageEditorPath, 0o700);
+
+      const rebaseArgs = [
+        "-c",
+        `sequence.editor=${sequenceEditorPath}`,
+        "-c",
+        `core.editor=${messageEditorPath}`,
+        "rebase",
+        "-i",
+        "--rebase-merges",
+      ];
+      if (parents.length === 0) {
+        rebaseArgs.push("--root");
+      } else {
+        // Rebase starts after the target's first parent, so the target itself
+        // is included in the todo list.
+        rebaseArgs.push(parents[0]);
+      }
+
+      await this.execGit(rebaseArgs, MAX_BUFFER, {
+        GITLOG_EDIT_HASH: resolvedHash,
+        GITLOG_EDIT_MESSAGE: message,
+      });
+    } catch (rebaseErr) {
+      try {
+        await this.execGit(["rebase", "--abort"]);
+      } catch {
+        // Ignore abort errors and preserve the original failure.
+      }
+      if (isDirty) {
+        try {
+          await this.execGit(["stash", "pop"]);
+        } catch {
+          // The original operation error is more useful to the caller.
+        }
+      }
+      throw rebaseErr;
+    } finally {
+      try {
+        await fs.unlink(sequenceEditorPath);
+      } catch {
+        // Ignore temporary editor cleanup errors.
+      }
+      try {
+        await fs.unlink(messageEditorPath);
+      } catch {
+        // Ignore temporary editor cleanup errors.
+      }
+    }
+
+    if (isDirty) {
+      await this.execGit(["stash", "pop"]);
+    }
+    this.invalidateCache();
+  }
+
   /** Squash a contiguous chain of commits into its oldest selected commit. */
   async squashCommits(hashes: string[], message: string): Promise<void> {
     if (hashes.length === 0) {
@@ -914,8 +1063,8 @@ export class GitService {
 const fs = require("node:fs");
 const { execFileSync } = require("node:child_process");
 const todoPath = process.argv[2];
-const targets = new Set(JSON.parse(process.env.JETGIT_SQUASH_HASHES || "[]"));
-const oldestHash = process.env.JETGIT_SQUASH_OLDEST_HASH;
+const targets = new Set(JSON.parse(process.env.GITLOG_SQUASH_HASHES || "[]"));
+const oldestHash = process.env.GITLOG_SQUASH_OLDEST_HASH;
 if (!todoPath || targets.size === 0 || !oldestHash) process.exit(2);
 const lines = fs.readFileSync(todoPath, "utf8").split(/\\r?\\n/);
 let foundOldest = false;
@@ -949,7 +1098,7 @@ fs.writeFileSync(todoPath, lines.join("\\n"));
 const fs = require("node:fs");
 const messagePath = process.argv[2];
 if (!messagePath) process.exit(2);
-fs.writeFileSync(messagePath, process.env.JETGIT_SQUASH_MESSAGE || "");
+fs.writeFileSync(messagePath, process.env.GITLOG_SQUASH_MESSAGE || "");
 `;
 
     try {
@@ -973,9 +1122,9 @@ fs.writeFileSync(messagePath, process.env.JETGIT_SQUASH_MESSAGE || "");
         rebaseArgs.push(`${oldestParent}^`);
       }
       await this.execGit(rebaseArgs, MAX_BUFFER, {
-        JETGIT_SQUASH_HASHES: JSON.stringify(resolvedHashes),
-        JETGIT_SQUASH_OLDEST_HASH: resolvedHashes[0],
-        JETGIT_SQUASH_MESSAGE: message,
+        GITLOG_SQUASH_HASHES: JSON.stringify(resolvedHashes),
+        GITLOG_SQUASH_OLDEST_HASH: resolvedHashes[0],
+        GITLOG_SQUASH_MESSAGE: message,
       });
     } catch (rebaseErr) {
       try {

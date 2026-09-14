@@ -107,6 +107,7 @@ export type CommandType =
   | "executePush"
   | "openPushPanel"
   | "getRemoteBranches"
+  | "editCommitMessage"
   | "dropCommit"
   | "squashCommit"
   | "closePushPanel"

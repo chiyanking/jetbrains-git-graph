@@ -60,20 +60,16 @@ function IconRevert() {
   );
 }
 
-function IconSquash() {
+function IconDrop() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path
-        d="M4 2.5v3c0 1.1.9 2 2 2h4c1.1 0 2 .9 2 2v4"
-        stroke="currentColor"
-        strokeLinecap="round"
-      />
-      <path
-        d="m9.5 11.5 2.5 2.5 2.5-2.5"
+        d="M4 4.5h8M6 4.5V3.25C6 2.56 6.56 2 7.25 2h1.5C9.44 2 10 2.56 10 3.25V4.5M5 6.5v6.25c0 .69.56 1.25 1.25 1.25h3.5c.69 0 1.25-.56 1.25-1.25V6.5"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <path d="M7 8v3M9 8v3" stroke="currentColor" strokeLinecap="round" />
     </svg>
   );
 }
@@ -130,6 +126,9 @@ export function CommitContextMenu({
   const [squashDialogOpen, setSquashDialogOpen] = useState(false);
   const [squashMessage, setSquashMessage] = useState("");
   const [squashError, setSquashError] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
+  const [editError, setEditError] = useState("");
 
   const selectedCommits = useMemo(() => {
     const hashes = selectedCommitHashes.includes(commit.hash)
@@ -312,6 +311,38 @@ export function CommitContextMenu({
     }
   };
 
+  const handleEditCommitMessage = () => {
+    setEditMessage([commit.subject, commit.body].filter(Boolean).join("\n\n"));
+    setEditError("");
+    setEditDialogOpen(true);
+  };
+
+  const handleConfirmEditCommitMessage = async () => {
+    const message = editMessage.trim();
+    if (!message) {
+      setEditError("Commit message cannot be empty");
+      return;
+    }
+    try {
+      await bridgeWithProgress("editCommitMessage", {
+        hash: commit.hash,
+        message,
+      });
+      setEditDialogOpen(false);
+      onClose();
+    } catch (err) {
+      console.error("Edit commit message failed:", err);
+      setEditError(
+        err instanceof Error ? err.message : "Failed to edit commit message",
+      );
+    }
+  };
+
+  const handleCancelEditCommitMessage = () => {
+    setEditDialogOpen(false);
+    onClose();
+  };
+
   const handleSquash = async () => {
     const defaultMessage = squashOrder
       .map((candidate) =>
@@ -426,11 +457,16 @@ export function CommitContextMenu({
       (candidate, index) =>
         index > 0 && candidate.parents[0] !== squashOrder[index - 1].hash,
     );
+  const isEditCommitMessageDisabled =
+    !currentBranch ||
+    isRebasing ||
+    isMerging ||
+    isCherryPicking ||
+    selectedCommits.length > 1;
 
   const items: {
     label: string;
     action: () => void;
-    separator?: boolean;
     icon?: React.ReactNode;
     disabled?: boolean;
   }[] = [
@@ -444,45 +480,45 @@ export function CommitContextMenu({
       action: handleCherryPick,
       icon: <IconCherryPick />,
     },
-    { label: "", action: () => {}, separator: true },
-    { label: "Checkout Revision", action: handleCheckoutRevision },
-    { label: "", action: () => {}, separator: true },
     {
-      label: "Reset to Here (Mixed)...",
+      label: "Squash Commits...",
+      action: handleSquash,
+      disabled: isSquashCommitDisabled,
+    },
+    {
+      label: "Edit Commit Message",
+      action: handleEditCommitMessage,
+      disabled: isEditCommitMessageDisabled,
+    },
+    {
+      label: "Reset to Here (Mixed)",
       action: handleResetMixed,
       icon: <IconRevert />,
     },
     {
-      label: "Reset to Here (Soft)...",
+      label: "Reset to Here (Soft)",
       action: handleResetSoft,
       icon: <IconRevert />,
     },
     {
-      label: "Reset to Here (Hard)...",
+      label: "Reset to Here (Hard)",
       action: handleResetHard,
       icon: <IconRevert />,
     },
-    {
-      label: "Squash Commits...",
-      action: handleSquash,
-      icon: <IconSquash />,
-      disabled: isSquashCommitDisabled,
-    },
-    { label: "Revert Commit", action: handleRevert, icon: <IconRevert /> },
+    { label: "Checkout Revision", action: handleCheckoutRevision },
+    { label: "Revert Commit", action: handleRevert },
     {
       label: "Drop Commit",
       action: handleDropCommit,
-      icon: <IconRevert />,
+      icon: <IconDrop />,
       disabled: isDropCommitDisabled,
     },
-    { label: "", action: () => {}, separator: true },
     { label: "New Branch...", action: handleNewBranch, icon: <IconBranch /> },
     { label: "New Tag...", action: handleNewTag, icon: <IconTag /> },
   ];
 
   // Add "Show in Git Log" when file filter is active
   if (filter.file) {
-    items.push({ label: "", action: () => {}, separator: true });
     items.push({
       label: "Show in Git Log",
       action: handleShowInGitLog,
@@ -504,23 +540,17 @@ export function CommitContextMenu({
         visibility: position ? "visible" : "hidden",
       }}
     >
-      {items.map((item, i) =>
-        item.separator ? (
-          <div key={`sep-${i}`} className="commit-context-menu-separator" />
-        ) : (
-          <div
-            key={item.label}
-            className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
-            onClick={item.disabled ? undefined : item.action}
-            aria-disabled={item.disabled || undefined}
-          >
-            <span className="commit-context-menu-icon">
-              {item.icon ?? null}
-            </span>
-            {item.label}
-          </div>
-        ),
-      )}
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
+          onClick={item.disabled ? undefined : item.action}
+          aria-disabled={item.disabled || undefined}
+        >
+          <span className="commit-context-menu-icon">{item.icon ?? null}</span>
+          {item.label}
+        </div>
+      ))}
       {squashDialogOpen && (
         <div
           className="squash-message-modal"
@@ -553,13 +583,66 @@ export function CommitContextMenu({
               <div className="squash-message-error">{squashError}</div>
             )}
             <div className="squash-message-dialog-actions">
-              <button type="button" onClick={handleCancelSquash}>
+              <button
+                type="button"
+                className="commit-btn commit-btn-secondary"
+                onClick={handleCancelSquash}
+              >
                 Cancel
               </button>
               <button
                 type="button"
-                className="squash-message-confirm"
+                className="commit-btn commit-btn-secondary"
                 onClick={handleConfirmSquash}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {editDialogOpen && (
+        <div
+          className="squash-message-modal"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) handleCancelEditCommitMessage();
+          }}
+        >
+          <div
+            className="squash-message-dialog"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="squash-message-dialog-title">
+              Edit Commit Message
+            </div>
+            <div className="squash-message-dialog-description">
+              Edit message for {shortHash}
+            </div>
+            <textarea
+              className="squash-message-editor"
+              value={editMessage}
+              onChange={(e) => {
+                setEditMessage(e.target.value);
+                setEditError("");
+              }}
+              autoFocus
+              spellCheck={false}
+            />
+            {editError && (
+              <div className="squash-message-error">{editError}</div>
+            )}
+            <div className="squash-message-dialog-actions">
+              <button
+                type="button"
+                className="commit-btn commit-btn-secondary"
+                onClick={handleCancelEditCommitMessage}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="commit-btn commit-btn-secondary"
+                onClick={handleConfirmEditCommitMessage}
               >
                 OK
               </button>

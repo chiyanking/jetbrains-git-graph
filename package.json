@@ -45,7 +45,7 @@
       "panel": [
         {
           "id": "git-brains-panel",
-          "title": "JetGit",
+          "title": "GitLog",
           "icon": "$(git-branch)"
         }
       ],
@@ -84,89 +84,89 @@
         "command": "git-brains.refreshLog",
         "title": "Refresh Git Log",
         "icon": "$(refresh)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.selectRepository",
         "title": "Select Repository",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.openMergeEditor",
         "title": "Open Merge Editor",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.openConflicts",
         "title": "Conflicts",
         "icon": "$(git-merge)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.openMergeEditorFromSCM",
-        "title": "Open in JetGit Merge Editor",
+        "title": "Open in GitLog Merge Editor",
         "icon": "$(git-merge)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.showFileHistory",
-        "title": "(JetGit) Show File History",
+        "title": "(GitLog) Show File History",
         "icon": "$(history)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.nextDiff",
         "title": "Next File Diff",
         "icon": "$(arrow-down)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.prevDiff",
         "title": "Previous File Diff",
         "icon": "$(arrow-up)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.commitPanel.refresh",
         "title": "Refresh Changes",
         "icon": "$(refresh)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.commitPanel.commit",
         "title": "Commit",
         "icon": "$(check)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.commitPanel.commitAndPush",
         "title": "Commit and Push",
         "icon": "$(cloud-upload)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.commitPanel.shelve",
         "title": "Shelve Changes",
         "icon": "$(archive)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.commitPanel.unshelve",
         "title": "Unshelve Changes",
         "icon": "$(package)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.openPushPanel",
         "title": "Push...",
         "icon": "$(cloud-upload)",
-        "category": "JetGit"
+        "category": "GitLog"
       },
       {
         "command": "git-brains.editSource",
-        "title": "(JetGit) Edit Source",
+        "title": "(GitLog) Edit Source",
         "icon": "$(go-to-file)",
-        "category": "JetGit"
+        "category": "GitLog"
       }
     ],
     "menus": {

@@ -87,6 +87,52 @@ button:disabled {
   cursor: default;
 }
 
+/* Shared action buttons used by commit and panel dialogs. */
+.commit-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  height: 28px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.commit-btn-primary {
+  background: var(--vscode-button-background, var(--button-bg));
+  color: var(--vscode-button-foreground, var(--button-fg));
+}
+
+.commit-btn-primary:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground, var(--button-hover-bg));
+}
+
+.commit-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.commit-btn-secondary {
+  background: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, var(--app-fg));
+}
+
+.commit-btn-secondary:hover:not(:disabled) {
+  background: var(--vscode-list-hoverBackground, #45494e);
+  color: var(
+    --vscode-list-hoverForeground,
+    var(--vscode-button-secondaryForeground, var(--app-fg))
+  );
+}
+
+.commit-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Squash commit message editor */
 .squash-message-modal {
   position: fixed;
@@ -121,7 +167,7 @@ button:disabled {
 .squash-message-dialog-description {
   margin-bottom: 10px;
   color: var(--vscode-descriptionForeground, #a8abb0);
-  font-size: 12px;
+  font-size: var(--font-size);
 }
 
 .squash-message-editor {
@@ -136,7 +182,6 @@ button:disabled {
   color: var(--vscode-input-foreground, var(--app-fg));
   font-family: var(--font-family);
   font-size: var(--font-size);
-  line-height: 1.5;
 }
 
 .squash-message-editor:focus {
@@ -156,14 +201,8 @@ button:disabled {
   margin-top: 14px;
 }
 
-.squash-message-dialog-actions button {
-  min-width: 72px;
-  height: 28px;
-}
-
-.squash-message-dialog-actions .squash-message-confirm {
-  background: var(--vscode-button-background, #0e639c);
-  color: var(--vscode-button-foreground, #fff);
+.squash-message-dialog-actions .commit-btn {
+  font-size: var(--font-size);
 }
 
 .selectable-row {

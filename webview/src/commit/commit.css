@@ -322,7 +322,8 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   min-width: 200px;
   padding: 4px 0;
-  font-size: 12px;
+  font-family: var(--font-family);
+  font-size: var(--font-size);
 }
 
 .commit-context-menu-item {
@@ -334,7 +335,8 @@
   border: none;
   background: transparent;
   color: var(--vscode-menu-foreground, var(--vscode-foreground));
-  font-size: 12px;
+  font-family: inherit;
+  font-size: inherit;
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
@@ -361,11 +363,9 @@
 
 .commit-context-menu-separator {
   height: 1px;
-  background: var(
-    --vscode-menu-separatorBackground,
-    var(--vscode-widget-border)
-  );
+  background: var(--vscode-menu-separatorBackground, rgba(128, 128, 128, 0.35));
   margin: 4px 0;
+  opacity: 0.8;
 }
 
 .commit-context-menu-header {
@@ -387,16 +387,12 @@
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.24);
-  font-size: var(--font-size);
 }
 
 .commit-context-menu--git-log .commit-context-menu-item {
-  min-height: 32px;
   padding: 5px 10px;
   gap: 10px;
   border-radius: 6px;
-  font-size: var(--font-size);
-  line-height: 20px;
 }
 
 .commit-context-menu--git-log
@@ -414,21 +410,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 1.3em;
+  height: 1.3em;
   color: var(--vscode-menu-foreground, #c7c9cc);
   opacity: 0.78;
 }
 
 .commit-context-menu--git-log .commit-context-menu-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.commit-context-menu--git-log .commit-context-menu-separator {
-  margin: 5px 6px;
-  background: var(--vscode-menu-separatorBackground, #4b4d52);
-  opacity: 0.9;
+  width: 1.3em;
+  height: 1.3em;
 }
 
 /* ─── Commit Message Area ──────────────────────────────────────── */
@@ -484,47 +474,6 @@
 .commit-buttons {
   display: flex;
   gap: 6px;
-}
-
-.commit-btn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-  height: 28px;
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.commit-btn-primary {
-  background: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
-}
-
-.commit-btn-primary:hover {
-  background: var(--vscode-button-hoverBackground);
-}
-
-.commit-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.commit-btn-secondary {
-  background: var(--vscode-button-secondaryBackground, #3a3d41);
-  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-}
-
-.commit-btn-secondary:hover:not(:disabled) {
-  background: var(--vscode-button-secondaryHoverBackground, #45494e);
-}
-
-.commit-btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* ─── Shelf ────────────────────────────────────────────────────── */
