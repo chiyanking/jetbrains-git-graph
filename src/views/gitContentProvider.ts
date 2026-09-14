@@ -9,6 +9,9 @@ export const GIT_BRAINS_SCHEME = "git-brains";
  *
  * Implements both TextDocumentContentProvider (for text diff) and
  * FileSystemProvider (for binary files like images).
+ *
+ * The single GitService is re-targeted to the selected repository via
+ * switchRepository(), so content always resolves against it.
  */
 export class GitContentProvider
   implements vscode.TextDocumentContentProvider, vscode.FileSystemProvider

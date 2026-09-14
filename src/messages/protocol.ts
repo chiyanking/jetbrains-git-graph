@@ -111,7 +111,9 @@ export type CommandType =
   | "closePushPanel"
   | "openRollbackPanel"
   | "executeRollback"
-  | "closeRollbackPanel";
+  | "closeRollbackPanel"
+  | "getRepositories"
+  | "selectRepository";
 
 export type EventType =
   | "gitStateChanged"

@@ -1,4 +1,5 @@
 import * as nodefs from "node:fs/promises";
+import * as nodepath from "node:path";
 import * as vscode from "vscode";
 import { GitService } from "./git/gitService";
 import type { DiffFile, LaneSnapshot } from "./git/types";
@@ -14,6 +15,7 @@ import {
 import { GitLogViewProvider } from "./views/gitLogViewProvider";
 import { MergeEditorManager } from "./views/mergeEditorManager";
 import { PushPanel } from "./views/pushPanel";
+import { RepositoriesViewProvider } from "./views/repositoriesViewProvider";
 import type { RollbackFileInfo } from "./views/rollbackPanel";
 import { RollbackPanel } from "./views/rollbackPanel";
 import { GitWatcher } from "./watchers/gitWatcher";
@@ -34,7 +36,7 @@ function withProgress(
   });
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   // 1. MessageRouter (always created)
   const messageRouter = new MessageRouter();
 
@@ -51,21 +53,34 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  // 2b. Git services for all workspace folders
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const allWorkspaceRoots = (vscode.workspace.workspaceFolders ?? []).map(
-    (f) => f.uri.fsPath,
-  );
+  // 2b. Git service — detects git repositories below the workspace folders.
+  // A single GitService is re-targeted to the selected repository via
+  // switchRepository() (multi-root workspace support).
   let gitService: GitService | null = null;
   let diffManager: DiffEditorManager | null = null;
+  let currentRoot: string | null = null;
 
-  const allGitServices: GitService[] = [];
-  for (const root of allWorkspaceRoots) {
-    allGitServices.push(new GitService(root));
+  interface RepositoryEntry {
+    name: string;
+    root: string;
   }
+  const candidateRoots = (vscode.workspace.workspaceFolders ?? []).map(
+    (f) => f.uri.fsPath,
+  );
+  const repositories: RepositoryEntry[] = (
+    await discoverRepositoryRoots(candidateRoots)
+  ).map((root) => ({
+    name: nodepath.basename(root) || root,
+    root,
+  }));
 
-  if (workspaceRoot) {
-    gitService = allGitServices[0] ?? new GitService(workspaceRoot);
+  /** Root path of the currently selected repository (null if none) */
+  const getCurrentRepoRoot = (): string | null => currentRoot;
+
+  if (repositories.length > 0) {
+    // Default to the first repository found in the workspace
+    gitService = new GitService(repositories[0].root);
+    currentRoot = repositories[0].root;
 
     // Register virtual document provider for git file content
     const contentProvider = new GitContentProvider(gitService);
@@ -89,13 +104,27 @@ export function activate(context: vscode.ExtensionContext) {
   const commitProvider = new CommitViewProvider(
     context.extensionUri,
     messageRouter,
-    allGitServices.map((s) => s.cache),
+    gitService ? [gitService.cache] : [],
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       CommitViewProvider.viewType,
       commitProvider,
       { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+  );
+
+  // 2d. Native repository list — kept as a separate view above Commit so
+  // multi-root workspaces remain visible without a dropdown.
+  const repositoriesProvider = new RepositoriesViewProvider(
+    repositories,
+    getCurrentRepoRoot,
+  );
+  context.subscriptions.push(
+    repositoriesProvider,
+    vscode.window.registerTreeDataProvider(
+      "git-brains.repositories",
+      repositoriesProvider,
     ),
   );
 
@@ -141,7 +170,23 @@ export function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand("git-brains.refreshLog", () => {
       messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+      repositoriesProvider.refresh();
     }),
+    vscode.commands.registerCommand(
+      "git-brains.selectRepository",
+      (root: string) => {
+        const entry = repositories.find((repo) => repo.root === root);
+        if (!entry || !gitService) return;
+        if (entry.root !== currentRoot) {
+          gitService.switchRepository(entry.root);
+          currentRoot = entry.root;
+          gitService.cache.invalidate();
+          repositoriesProvider.refresh();
+          messageRouter.broadcastEvent("commitStateChanged", {});
+          messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+        }
+      },
+    ),
     vscode.commands.registerCommand("git-brains.nextDiff", async () => {
       if (diffManager) {
         const result = await diffManager.nextDiff();
@@ -186,8 +231,37 @@ export function activate(context: vscode.ExtensionContext) {
       "git-brains.showFileHistory",
       async (uri?: vscode.Uri) => {
         const fileUri = uri ?? vscode.window.activeTextEditor?.document.uri;
-        if (!fileUri || !workspaceRoot) return;
-        const relativePath = vscode.workspace.asRelativePath(fileUri, false);
+        if (!fileUri || repositories.length === 0) return;
+        // A file from another nested repository may be invoked from the
+        // Explorer while a different repository is selected. Select the
+        // repository containing the file before calculating its Git-relative
+        // path; workspace.asRelativePath would otherwise include the nested
+        // repository directory and produce an invalid path for git log.
+        if (fileUri.scheme === "file" && gitService) {
+          const filePath = nodepath.resolve(fileUri.fsPath);
+          const containing = repositories
+            .filter(
+              (repo) =>
+                filePath === repo.root ||
+                filePath.startsWith(`${repo.root}${nodepath.sep}`),
+            )
+            .sort((a, b) => b.root.length - a.root.length)[0];
+          if (containing && containing.root !== currentRoot) {
+            gitService.switchRepository(containing.root);
+            currentRoot = containing.root;
+            gitService.cache.invalidate();
+            repositoriesProvider.refresh();
+            messageRouter.broadcastEvent("commitStateChanged", {});
+            messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+          }
+        }
+        const relativePath =
+          currentRoot && fileUri.scheme === "file"
+            ? nodepath
+                .relative(currentRoot, fileUri.fsPath)
+                .split(nodepath.sep)
+                .join("/")
+            : vscode.workspace.asRelativePath(fileUri, false);
         // Ensure the Git Log panel is visible before sending the event
         await vscode.commands.executeCommand("git-brains.gitLog.focus");
         // Send file filter to webview
@@ -207,6 +281,7 @@ export function activate(context: vscode.ExtensionContext) {
       // Resolve the actual workspace file path from diff URI
       // Format: git-brains:/<relativePath>?ref=<commitHash>
       let filePath: string | undefined;
+      const repoRoot = getCurrentRepoRoot();
 
       if (uri.scheme === "file") {
         filePath = uri.fsPath;
@@ -215,9 +290,9 @@ export function activate(context: vscode.ExtensionContext) {
         const relativePath = uri.path.startsWith("/")
           ? uri.path.slice(1)
           : uri.path;
-        if (relativePath && workspaceRoot) {
+        if (relativePath && repoRoot) {
           filePath = vscode.Uri.joinPath(
-            vscode.Uri.file(workspaceRoot),
+            vscode.Uri.file(repoRoot),
             relativePath,
           ).fsPath;
         }
@@ -226,9 +301,9 @@ export function activate(context: vscode.ExtensionContext) {
         const relativePath = uri.path.startsWith("/")
           ? uri.path.slice(1)
           : uri.path;
-        if (relativePath && workspaceRoot) {
+        if (relativePath && repoRoot) {
           filePath = vscode.Uri.joinPath(
-            vscode.Uri.file(workspaceRoot),
+            vscode.Uri.file(repoRoot),
             relativePath,
           ).fsPath;
         }
@@ -540,8 +615,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   messageRouter.handle("openFile", async (params) => {
     const filePath = params.filePath as string;
-    const absPath = workspaceRoot
-      ? vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot), filePath)
+    const repoRoot = getCurrentRepoRoot();
+    const absPath = repoRoot
+      ? vscode.Uri.joinPath(vscode.Uri.file(repoRoot), filePath)
       : vscode.Uri.file(filePath);
     try {
       await vscode.commands.executeCommand("vscode.open", absPath);
@@ -742,13 +818,14 @@ export function activate(context: vscode.ExtensionContext) {
         statusMap.set(file.path, file.status);
       }
 
+      const repoRoot = getCurrentRepoRoot();
       for (const filePath of filePaths) {
         const status = statusMap.get(filePath) ?? "modified";
         if (status === "added" || status === "untracked") {
           if (deleteLocalCopies) {
             // Delete untracked/added file from filesystem
             const absPath = vscode.Uri.joinPath(
-              vscode.Uri.file(workspaceRoot!),
+              vscode.Uri.file(repoRoot ?? ""),
               filePath,
             );
             await vscode.workspace.fs.delete(absPath);
@@ -956,19 +1033,10 @@ export function activate(context: vscode.ExtensionContext) {
   // ─── Commit Panel Handlers ───────────────────────────────────────
 
   messageRouter.handle("getWorkingTreeChanges", async () => {
-    if (allGitServices.length === 0) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
 
-    // Aggregate changes from all workspace folders
-    const allChanges: import("./git/types").WorkingTreeFile[] = [];
-    for (const svc of allGitServices) {
-      try {
-        const changes = await svc.getWorkingTreeChanges();
-        allChanges.push(...changes);
-      } catch {
-        // Skip folders that aren't git repos
-      }
-    }
-    return allChanges;
+    // Changes of the currently selected repository
+    return gitService.getWorkingTreeChanges();
   });
 
   messageRouter.handle("unstageFile", async (params) => {
@@ -1088,17 +1156,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   messageRouter.handle("revealInSystemExplorer", async (params) => {
     const filePath = params.filePath as string;
-    if (!filePath || !workspaceRoot) return { success: false };
-    const absPath = vscode.Uri.joinPath(
-      vscode.Uri.file(workspaceRoot),
-      filePath,
-    );
+    const repoRoot = getCurrentRepoRoot();
+    if (!filePath || !repoRoot) return { success: false };
+    const absPath = vscode.Uri.joinPath(vscode.Uri.file(repoRoot), filePath);
     await vscode.commands.executeCommand("revealFileInOS", absPath);
     return { success: true };
   });
 
   messageRouter.handle("deleteFiles", async (params) => {
-    if (!workspaceRoot) return NOT_GIT_REPO;
+    const repoRoot = getCurrentRepoRoot();
+    if (!repoRoot) return NOT_GIT_REPO;
     const filePaths = params.filePaths as string[];
     if (!filePaths || filePaths.length === 0) return { success: false };
 
@@ -1116,10 +1183,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (choice !== "Delete") return { success: false };
 
     for (const filePath of filePaths) {
-      const fullPath = vscode.Uri.joinPath(
-        vscode.Uri.file(workspaceRoot),
-        filePath,
-      );
+      const fullPath = vscode.Uri.joinPath(vscode.Uri.file(repoRoot), filePath);
       try {
         await vscode.workspace.fs.delete(fullPath, { recursive: true });
       } catch {
@@ -1131,14 +1195,13 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("showDiffForWorkingFile", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
+    const repoRoot = getCurrentRepoRoot();
+    if (!repoRoot) return NOT_GIT_REPO;
     const filePath = params.filePath as string;
     const staged = params.staged as boolean | undefined;
 
-    const rightUri = vscode.Uri.joinPath(
-      vscode.Uri.file(workspaceRoot),
-      filePath,
-    );
+    const rightUri = vscode.Uri.joinPath(vscode.Uri.file(repoRoot), filePath);
 
     if (staged) {
       // Show diff between HEAD and staged
@@ -1207,7 +1270,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("showShelfFileDiff", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
     const stashId = params.stashId as string;
     const filePath = params.filePath as string;
 
@@ -1228,7 +1291,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("unshelveFile", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
     const stashId = params.stashId as string;
     const filePath = params.filePath as string;
 
@@ -1286,11 +1349,13 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("showIdeaShelfFileDiff", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
+    const repoRoot = getCurrentRepoRoot();
+    if (!repoRoot) return NOT_GIT_REPO;
     const shelfName = params.shelfName as string;
     const filePath = params.filePath as string;
 
-    const patchFile = `${workspaceRoot}/.idea/shelf/${shelfName}/shelved.patch`;
+    const patchFile = `${repoRoot}/.idea/shelf/${shelfName}/shelved.patch`;
     try {
       const patchContent = await nodefs.readFile(patchFile, "utf-8");
 
@@ -1329,13 +1394,15 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("createPatchFromShelf", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
+    const repoRoot = getCurrentRepoRoot();
+    if (!repoRoot) return NOT_GIT_REPO;
     const shelfName = params.shelfName as string;
-    const patchFile = `${workspaceRoot}/.idea/shelf/${shelfName}/shelved.patch`;
+    const patchFile = `${repoRoot}/.idea/shelf/${shelfName}/shelved.patch`;
 
     // Ask user where to save the patch
     const saveUri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(`${workspaceRoot}/${shelfName}.patch`),
+      defaultUri: vscode.Uri.file(`${repoRoot}/${shelfName}.patch`),
       filters: { "Patch files": ["patch", "diff"], "All files": ["*"] },
       title: "Save Patch File",
     });
@@ -1357,9 +1424,11 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("copyShelfPatchToClipboard", async (params) => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
+    const repoRoot = getCurrentRepoRoot();
+    if (!repoRoot) return NOT_GIT_REPO;
     const shelfName = params.shelfName as string;
-    const patchFile = `${workspaceRoot}/.idea/shelf/${shelfName}/shelved.patch`;
+    const patchFile = `${repoRoot}/.idea/shelf/${shelfName}/shelved.patch`;
 
     try {
       const patchContent = await nodefs.readFile(patchFile, "utf-8");
@@ -1374,7 +1443,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("importPatches", async () => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
 
     // Ask user to select patch files
     const fileUris = await vscode.window.showOpenDialog({
@@ -1408,7 +1477,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   messageRouter.handle("importPatchFromClipboard", async () => {
-    if (!gitService || !workspaceRoot) return NOT_GIT_REPO;
+    if (!gitService) return NOT_GIT_REPO;
 
     try {
       const clipboardContent = await vscode.env.clipboard.readText();
@@ -1552,14 +1621,41 @@ export function activate(context: vscode.ExtensionContext) {
     return { success: true };
   });
 
-  // 7. GitWatcher (only if GitService is available)
-  if (gitService && workspaceRoot) {
-    const watcher = new GitWatcher(
-      workspaceRoot,
-      messageRouter,
-      gitService.cache,
-    );
-    context.subscriptions.push(watcher);
+  // ─── Multi-repo Selection Handlers ──────────────────────────────────
+
+  messageRouter.handle("getRepositories", async () => {
+    return {
+      repositories: repositories.map((r) => ({ name: r.name, root: r.root })),
+      currentRoot: getCurrentRepoRoot(),
+    };
+  });
+
+  messageRouter.handle("selectRepository", async (params) => {
+    const root = params.root as string;
+    const entry = repositories.find((r) => r.root === root);
+    if (!entry || !gitService) return { success: false };
+    if (entry.root !== currentRoot) {
+      gitService.switchRepository(entry.root);
+      currentRoot = entry.root;
+      gitService.cache.invalidate();
+      repositoriesProvider.refresh();
+      messageRouter.broadcastEvent("commitStateChanged", {});
+      messageRouter.broadcastEvent("gitStateChanged", { scope: "all" });
+    }
+    return { success: true };
+  });
+
+  // 7. GitWatcher — one per repository, so any repo change refreshes the UI
+  if (gitService) {
+    for (const repo of repositories) {
+      const watcher = new GitWatcher(
+        repo.root,
+        messageRouter,
+        gitService.cache,
+        () => repositoriesProvider.refresh(),
+      );
+      context.subscriptions.push(watcher);
+    }
   }
 
   // 8. Status bar item to quickly open the panel
@@ -1572,6 +1668,49 @@ export function activate(context: vscode.ExtensionContext) {
   statusBarItem.command = "git-brains.gitLog.focus";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
+}
+
+/**
+ * Discover Git repositories below one or more workspace folders. VS Code only
+ * exposes the folders selected in the workspace; a common monorepo layout is
+ * to open a parent directory that contains several independent repositories.
+ * In that case checking only the workspace folder itself misses every repo.
+ */
+async function discoverRepositoryRoots(roots: string[]): Promise<string[]> {
+  const found = new Set<string>();
+  const skipDirectories = new Set([
+    "node_modules",
+    ".pnpm",
+    ".git",
+    ".hg",
+    ".svn",
+  ]);
+
+  async function visit(dir: string, depth: number): Promise<void> {
+    if (depth > 12 || found.has(dir)) return;
+
+    try {
+      const entries = await nodefs.readdir(dir, { withFileTypes: true });
+      const gitEntry = entries.find((entry) => entry.name === ".git");
+      if (gitEntry) {
+        // .git may be either a directory or a file (linked worktree/submodule).
+        found.add(dir);
+      }
+
+      await Promise.all(
+        entries
+          .filter(
+            (entry) => entry.isDirectory() && !skipDirectories.has(entry.name),
+          )
+          .map((entry) => visit(nodepath.join(dir, entry.name), depth + 1)),
+      );
+    } catch {
+      // Ignore unreadable directories; other workspace roots can still be scanned.
+    }
+  }
+
+  await Promise.all(roots.map((root) => visit(nodepath.resolve(root), 0)));
+  return [...found].sort((a, b) => a.localeCompare(b));
 }
 
 function extToLanguage(ext: string): string {

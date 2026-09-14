@@ -30,6 +30,7 @@ export async function bridgeWithProgress(
 export type {
   Bridge,
   EventMessage,
+  RepositoryInfo,
   RequestMessage,
   ResponseMessage,
 } from "./types";

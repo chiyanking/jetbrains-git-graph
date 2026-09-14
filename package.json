@@ -52,7 +52,7 @@
       "activitybar": [
         {
           "id": "git-brains-commit",
-          "title": "Commit",
+          "title": "Source Control",
           "icon": "images/commit-icon.svg"
         }
       ]
@@ -67,9 +67,15 @@
       ],
       "git-brains-commit": [
         {
+          "id": "git-brains.repositories",
+          "name": "Repositories",
+          "visibility": "visible"
+        },
+        {
           "type": "webview",
           "id": "git-brains.commitPanel",
-          "name": "Commit"
+          "name": "Local Changes",
+          "visibility": "visible"
         }
       ]
     },
@@ -78,6 +84,11 @@
         "command": "git-brains.refreshLog",
         "title": "Refresh Git Log",
         "icon": "$(refresh)",
+        "category": "JetGit"
+      },
+      {
+        "command": "git-brains.selectRepository",
+        "title": "Select Repository",
         "category": "JetGit"
       },
       {

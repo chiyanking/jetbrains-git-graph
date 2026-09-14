@@ -377,6 +377,60 @@
   letter-spacing: 0.3px;
 }
 
+/* Git log commit menu: match JetBrains' inset, rounded popup treatment. */
+.commit-context-menu--git-log {
+  min-width: 236px;
+  padding: 6px;
+  border-color: var(--vscode-menu-border, #4b4d52);
+  border-radius: 10px;
+  background: var(--vscode-menu-background, #2b2d30);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.24);
+  font-size: var(--font-size);
+}
+
+.commit-context-menu--git-log .commit-context-menu-item {
+  min-height: 32px;
+  padding: 5px 10px;
+  gap: 10px;
+  border-radius: 6px;
+  font-size: var(--font-size);
+  line-height: 20px;
+}
+
+.commit-context-menu--git-log
+  .commit-context-menu-item:hover:not(.is-disabled) {
+  background: var(--vscode-menu-selectionBackground, #365880);
+  color: var(--vscode-menu-selectionForeground, #ffffff);
+}
+
+.commit-context-menu--git-log .commit-context-menu-item.is-disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.commit-context-menu--git-log .commit-context-menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--vscode-menu-foreground, #c7c9cc);
+  opacity: 0.78;
+}
+
+.commit-context-menu--git-log .commit-context-menu-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.commit-context-menu--git-log .commit-context-menu-separator {
+  margin: 5px 6px;
+  background: var(--vscode-menu-separatorBackground, #4b4d52);
+  opacity: 0.9;
+}
+
 /* ─── Commit Message Area ──────────────────────────────────────── */
 .commit-message-area {
   flex-shrink: 0;

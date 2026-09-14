@@ -12,6 +12,7 @@ export class GitWatcher implements vscode.Disposable {
     private readonly workspaceRoot: string,
     private readonly messageRouter: MessageRouter,
     private readonly cache: GitCache,
+    private readonly onDidNotify?: () => void,
   ) {
     this.setupFileWatchers();
     this.setupEditorWatchers();
@@ -128,6 +129,7 @@ export class GitWatcher implements vscode.Disposable {
         this.debounceTimers.delete(scope);
         this.cache.invalidate();
         this.messageRouter.broadcastEvent("gitStateChanged", { scope });
+        this.onDidNotify?.();
       }, 300),
     );
   }

@@ -47,7 +47,21 @@ const LOG_FORMAT = [
 export class GitService {
   readonly cache = new GitCache();
 
-  constructor(private readonly cwd: string) {}
+  private cwd: string;
+
+  constructor(cwd: string) {
+    this.cwd = cwd;
+  }
+
+  /**
+   * Switch the repository this service operates on.
+   * Used for multi-root workspaces: a single service instance is
+   * re-targeted to the selected repository's root. The cache is
+   * shared, so callers must invalidate it after switching.
+   */
+  switchRepository(cwd: string): void {
+    this.cwd = cwd;
+  }
 
   private async execGit(
     args: string[],

@@ -111,7 +111,15 @@ export type CommandType =
   | "closePushPanel"
   | "openRollbackPanel"
   | "executeRollback"
-  | "closeRollbackPanel";
+  | "closeRollbackPanel"
+  | "getRepositories"
+  | "selectRepository";
+
+/** A git repository discovered in the workspace */
+export interface RepositoryInfo {
+  name: string;
+  root: string;
+}
 
 export interface Bridge {
   request(
