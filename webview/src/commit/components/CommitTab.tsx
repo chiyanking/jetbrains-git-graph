@@ -74,6 +74,12 @@ export function CommitTab() {
     await ideaShelveChanges("Shelved changes", [...new Set(selectedPaths)]);
   }, [changes, selectedFiles, ideaShelveChanges]);
 
+  const hasSelectedChanges = useMemo(
+    () =>
+      changes.some((file) => selectedFiles.has(`${file.path}:${file.staged}`)),
+    [changes, selectedFiles],
+  );
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, file: WorkingTreeFile) => {
       setContextMenu({ x: e.clientX, y: e.clientY, file });
@@ -112,24 +118,31 @@ export function CommitTab() {
         }}
         onShelve={handleShelveSelected}
         onRollback={() => {
-          // Use highlighted files (click/focus selection), not checkbox selection
-          const highlightedPaths = changes
-            .filter((f) => highlightedFiles.has(`${f.path}:${f.staged}`))
-            .map((f) => ({ path: f.path, status: f.status, staged: f.staged }));
-
-          if (highlightedPaths.length > 0) {
-            bridge.request("openRollbackPanel", { files: highlightedPaths });
-          } else {
-            // No highlighted files: fall back to all working tree change files
-            const allFiles = changes.map((f) => ({
-              path: f.path,
-              status: f.status,
-              staged: f.staged,
+          // Rollback operates on the files checked in the local changes list.
+          // A path can appear twice when it has both staged and unstaged changes;
+          // rollbackFile restores the whole path, so show it only once.
+          const selectedPaths = new Set<string>();
+          const selectedFilesForRollback = changes
+            .filter((file) => selectedFiles.has(`${file.path}:${file.staged}`))
+            .filter((file) => {
+              if (selectedPaths.has(file.path)) return false;
+              selectedPaths.add(file.path);
+              return true;
+            })
+            .map((file) => ({
+              path: file.path,
+              status: file.status,
+              staged: file.staged,
             }));
-            bridge.request("openRollbackPanel", { files: allFiles });
+
+          if (selectedFilesForRollback.length > 0) {
+            bridge.request("openRollbackPanel", {
+              files: selectedFilesForRollback,
+            });
           }
         }}
         hasChanges={changes.length > 0}
+        hasSelectedChanges={hasSelectedChanges}
       />
 
       <div className="commit-file-list">

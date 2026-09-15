@@ -9,6 +9,7 @@ interface ToolbarProps {
   onShelve: () => void;
   onRollback: () => void;
   hasChanges: boolean;
+  hasSelectedChanges: boolean;
 }
 
 export function Toolbar({
@@ -16,6 +17,7 @@ export function Toolbar({
   onShelve,
   onRollback,
   hasChanges,
+  hasSelectedChanges,
 }: ToolbarProps) {
   const [showViewMenu, setShowViewMenu] = useState(false);
   const { expandedGroups, toggleGroup, expandAllDirs } = useCommitStore();
@@ -58,7 +60,7 @@ export function Toolbar({
           type="button"
           className="commit-toolbar-btn"
           onClick={onRollback}
-          disabled={!hasChanges}
+          disabled={!hasChanges || !hasSelectedChanges}
         >
           <RollbackIcon />
         </button>
