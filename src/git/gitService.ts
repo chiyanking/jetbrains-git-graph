@@ -746,11 +746,53 @@ export class GitService {
   }
 
   async pull(branchName?: string): Promise<void> {
-    const args = ["pull", "--autostash"];
-    if (branchName) {
-      args.push("origin", branchName);
+    // `git pull <remote> <branch>` always integrates into the currently
+    // checked-out branch.  That is incorrect for the BranchSidebar's
+    // "Update Selected" action when the selected branch is not current.
+    // Keep normal pull semantics for the current branch (including its
+    // configured upstream), and update other refs without changing HEAD.
+    const currentBranch = await this.getCurrentBranch();
+    if (!branchName || branchName === currentBranch) {
+      await this.execGit(["pull", "--autostash"]);
+      this.invalidateCache();
+      return;
     }
-    await this.execGit(args);
+
+    const branches = await this.getBranches();
+    const selected = branches.find((branch) => branch.name === branchName);
+
+    if (selected?.isRemote) {
+      // A remote branch has no working tree to pull into; refresh its
+      // remote-tracking ref directly (e.g. origin/feature).
+      const slash = branchName.indexOf("/");
+      const remote = slash > 0 ? branchName.slice(0, slash) : "origin";
+      const remoteBranch = slash > 0 ? branchName.slice(slash + 1) : branchName;
+      await this.execGit(["fetch", remote, remoteBranch]);
+    } else {
+      const remote = await this.getDefaultRemote(branchName);
+      let upstreamBranch = branchName;
+      try {
+        const configured = await this.execGit([
+          "config",
+          `branch.${branchName}.merge`,
+        ]);
+        const mergeRef = configured.trim();
+        if (mergeRef) {
+          upstreamBranch = mergeRef.replace(/^refs\/heads\//, "");
+        }
+      } catch {
+        // Branch has no explicit upstream; use the same-name remote branch.
+      }
+      // Fetch directly into the selected local ref.  This preserves the
+      // currently checked-out branch and fast-forwards the selected branch
+      // when its upstream has advanced.
+      await this.execGit([
+        "fetch",
+        remote,
+        `${upstreamBranch}:refs/remotes/${remote}/${upstreamBranch}`,
+        `${upstreamBranch}:refs/heads/${branchName}`,
+      ]);
+    }
     this.invalidateCache();
   }
 
