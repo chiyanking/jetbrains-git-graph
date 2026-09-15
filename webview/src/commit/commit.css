@@ -318,12 +318,14 @@
 
 /* ─── Context Menu ─────────────────────────────────────────────── */
 .commit-context-menu {
-  background: var(--vscode-menu-background, var(--vscode-dropdown-background));
-  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border));
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  min-width: 200px;
-  padding: 4px 0;
+  background: var(--vscode-menu-background, #2b2d30);
+  border: 1px solid var(--vscode-menu-border, #4b4d52);
+  border-radius: 10px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.24);
+  min-width: 236px;
+  padding: 6px;
   font-family: var(--font-family);
   font-size: var(--font-size);
 }
@@ -331,30 +333,40 @@
 .commit-context-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 5px 12px;
+  padding: 5px 10px;
   border: none;
   background: transparent;
   color: var(--vscode-menu-foreground, var(--vscode-foreground));
   font-family: inherit;
   font-size: inherit;
+  height: auto;
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
-  border-radius: 0;
+  border-radius: 6px;
 }
 
-.commit-context-menu-item:hover:not(:disabled) {
-  background: var(--vscode-menu-selectionBackground, #04395e);
-  color: var(--vscode-menu-selectionForeground, #fff);
+.commit-context-menu-item:hover:not(:disabled):not(.is-disabled) {
+  background: var(--vscode-menu-selectionBackground, #365880);
+  color: var(--vscode-menu-selectionForeground, #ffffff);
 }
 
 .commit-context-menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  opacity: 0.8;
+  width: 1.3em;
+  height: 1.3em;
+  color: var(--vscode-menu-foreground, #c7c9cc);
+  opacity: 0.78;
+}
+
+.commit-context-menu-icon svg {
+  width: 1.3em;
+  height: 1.3em;
 }
 
 .commit-context-menu-shortcut {
@@ -371,7 +383,7 @@
 }
 
 .commit-context-menu-header {
-  padding: 4px 12px;
+  padding: 4px 10px;
   font-size: 11px;
   font-weight: 600;
   opacity: 0.6;
@@ -379,48 +391,9 @@
   letter-spacing: 0.3px;
 }
 
-/* Git log commit menu: match JetBrains' inset, rounded popup treatment. */
-.commit-context-menu--git-log {
-  min-width: 236px;
-  padding: 6px;
-  border-color: var(--vscode-menu-border, #4b4d52);
-  border-radius: 10px;
-  background: var(--vscode-menu-background, #2b2d30);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.24);
-}
-
-.commit-context-menu--git-log .commit-context-menu-item {
-  padding: 5px 10px;
-  gap: 10px;
-  border-radius: 6px;
-}
-
-.commit-context-menu--git-log
-  .commit-context-menu-item:hover:not(.is-disabled) {
-  background: var(--vscode-menu-selectionBackground, #365880);
-  color: var(--vscode-menu-selectionForeground, #ffffff);
-}
-
-.commit-context-menu--git-log .commit-context-menu-item.is-disabled {
+.commit-context-menu-item.is-disabled {
   cursor: default;
   opacity: 0.4;
-}
-
-.commit-context-menu--git-log .commit-context-menu-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.3em;
-  height: 1.3em;
-  color: var(--vscode-menu-foreground, #c7c9cc);
-  opacity: 0.78;
-}
-
-.commit-context-menu--git-log .commit-context-menu-icon svg {
-  width: 1.3em;
-  height: 1.3em;
 }
 
 /* ─── Commit Message Area ──────────────────────────────────────── */

@@ -1282,57 +1282,25 @@ function BranchContextMenu({
   return (
     <div
       ref={menuRef}
+      className="commit-context-menu"
       style={{
         position: "fixed",
         top: position ? position.top : -9999,
         left: position ? position.left : -9999,
         zIndex: 9999,
-        background: "var(--vscode-menu-background, #1e1e1e)",
-        border: "1px solid var(--vscode-menu-border, #454545)",
-        borderRadius: 4,
-        padding: "4px 0",
-        minWidth: 160,
         maxHeight: "calc(100vh - 8px)",
         overflowY: "auto",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
         visibility: position ? "visible" : "hidden",
       }}
     >
       {items.map((item, i) =>
         item.separator ? (
-          <div
-            key={`sep-${i}`}
-            style={{
-              height: 1,
-              background: "var(--vscode-menu-separatorBackground, #454545)",
-              margin: "4px 0",
-            }}
-          />
+          <div key={`sep-${i}`} className="commit-context-menu-separator" />
         ) : (
           <div
             key={item.label}
             onClick={item.disabled ? undefined : item.action}
-            style={{
-              padding: "6px 16px",
-              cursor: item.disabled ? "default" : "pointer",
-              opacity: item.disabled ? 0.5 : 1,
-              color: "var(--vscode-menu-foreground, #ccc)",
-              fontSize: "13px",
-              whiteSpace: "nowrap",
-            }}
-            onMouseEnter={(e) => {
-              if (!item.disabled) {
-                (e.currentTarget as HTMLElement).style.background =
-                  "var(--vscode-list-hoverBackground, #2a2d2e)";
-                (e.currentTarget as HTMLElement).style.color =
-                  "var(--vscode-menu-selectionForeground, #fff)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color =
-                "var(--vscode-menu-foreground, #ccc)";
-            }}
+            className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
           >
             {item.label}
           </div>

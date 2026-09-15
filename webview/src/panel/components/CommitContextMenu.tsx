@@ -529,7 +529,7 @@ export function CommitContextMenu({
   const menu = (
     <div
       ref={menuRef}
-      className="commit-context-menu commit-context-menu--git-log"
+      className="commit-context-menu"
       style={{
         position: "fixed",
         top: position ? position.top : -9999,
