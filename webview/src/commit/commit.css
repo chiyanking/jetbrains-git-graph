@@ -375,13 +375,6 @@
   font-size: 11px;
 }
 
-.commit-context-menu-separator {
-  height: 1px;
-  background: var(--vscode-menu-separatorBackground, rgba(128, 128, 128, 0.35));
-  margin: 4px 0;
-  opacity: 0.8;
-}
-
 .commit-context-menu-header {
   padding: 4px 10px;
   font-size: 11px;

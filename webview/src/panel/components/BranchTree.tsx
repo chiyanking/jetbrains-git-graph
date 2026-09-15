@@ -1234,7 +1234,6 @@ function BranchContextMenu({
     label: string;
     action: () => void;
     disabled?: boolean;
-    separator?: boolean;
   }[] = [];
 
   if (!isCurrent) {
@@ -1252,7 +1251,6 @@ function BranchContextMenu({
   }
 
   if (!isCurrent) {
-    items.push({ label: "", action: () => {}, separator: true });
     items.push({
       label: `Rebase '${currentBranch}' onto '${branch.name}'`,
       action: handleRebase,
@@ -1264,7 +1262,6 @@ function BranchContextMenu({
   }
 
   if (!isCurrent) {
-    items.push({ label: "", action: () => {}, separator: true });
     if (!branch.isRemote) {
       items.push({ label: "Rename...", action: handleRename });
     }
@@ -1272,7 +1269,6 @@ function BranchContextMenu({
   }
 
   if (!branch.isRemote) {
-    items.push({ label: "", action: () => {}, separator: true });
     items.push({ label: "Update", action: handleUpdate });
     items.push({ label: "Push...", action: handlePush });
   }
@@ -1293,19 +1289,15 @@ function BranchContextMenu({
         visibility: position ? "visible" : "hidden",
       }}
     >
-      {items.map((item, i) =>
-        item.separator ? (
-          <div key={`sep-${i}`} className="commit-context-menu-separator" />
-        ) : (
-          <div
-            key={item.label}
-            onClick={item.disabled ? undefined : item.action}
-            className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
-          >
-            {item.label}
-          </div>
-        ),
-      )}
+      {items.map((item) => (
+        <div
+          key={item.label}
+          onClick={item.disabled ? undefined : item.action}
+          className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
+        >
+          {item.label}
+        </div>
+      ))}
     </div>
   );
 }

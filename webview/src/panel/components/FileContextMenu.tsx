@@ -303,14 +303,11 @@ export function FileContextMenu({ x, y, file, onClose }: FileContextMenuProps) {
   const items: {
     label: string;
     action: () => void;
-    separator?: boolean;
     icon?: React.ReactNode;
   }[] = [
     { label: "Show Diff", action: handleShowDiff, icon: <IconDiff /> },
-    { label: "", action: () => {}, separator: true },
     { label: "Edit Source", action: handleEditSource, icon: <IconEdit /> },
     { label: "Open Repository Version", action: handleOpenRepoVersion },
-    { label: "", action: () => {}, separator: true },
     {
       label: "Revert Selected Changes",
       action: handleRevertFileChanges,
@@ -321,10 +318,8 @@ export function FileContextMenu({ x, y, file, onClose }: FileContextMenuProps) {
       action: handleCherryPickFileChanges,
       icon: <IconCherryPick />,
     },
-    { label: "", action: () => {}, separator: true },
     { label: "Copy Path", action: handleCopyPath, icon: <IconCopy /> },
     { label: "Copy File Name", action: handleCopyFileName, icon: <IconCopy /> },
-    { label: "", action: () => {}, separator: true },
     { label: "History Up to Here", action: handleHistoryUpToHere },
   ];
 
@@ -342,22 +337,16 @@ export function FileContextMenu({ x, y, file, onClose }: FileContextMenuProps) {
         visibility: position ? "visible" : "hidden",
       }}
     >
-      {items.map((item, i) =>
-        item.separator ? (
-          <div key={`sep-${i}`} className="commit-context-menu-separator" />
-        ) : (
-          <div
-            key={item.label}
-            onClick={item.action}
-            className="commit-context-menu-item"
-          >
-            <span className="commit-context-menu-icon">
-              {item.icon ?? null}
-            </span>
-            {item.label}
-          </div>
-        ),
-      )}
+      {items.map((item) => (
+        <div
+          key={item.label}
+          onClick={item.action}
+          className="commit-context-menu-item"
+        >
+          <span className="commit-context-menu-icon">{item.icon ?? null}</span>
+          {item.label}
+        </div>
+      ))}
     </div>
   );
 
