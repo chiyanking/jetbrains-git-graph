@@ -1,5 +1,11 @@
 # Changelog / 更新日志
 
+## [0.4.18] - 2026-09-15
+
+### Changed / 变更
+- **Commit context menu reorder (IDEA-style)** — menu items now follow IntelliJ IDEA Git log order: Cherry-Pick → Squash Commits → Edit Commit Message → Reset to Here (Mixed/Soft/Hard) → Checkout Revision → Revert Commit → Drop Commit / 右键菜单按 IDEA 顺序重排，Revert 与 Drop 相邻
+- **Edit Commit Message: multi-select guard** — disabled when multiple commits are selected, since message editing only applies to a single commit / 多选 commit 时禁用 Edit Commit Message
+
 ## [0.4.17] - 2026-06-20
 
 ### Added / 新增

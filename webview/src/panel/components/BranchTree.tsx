@@ -300,7 +300,6 @@ export function BranchTree({
 } = {}) {
   const branches = usePanelStore((s) => s.branches);
   const tags = usePanelStore((s) => s.tags);
-  const commits = usePanelStore((s) => s.commits);
   const currentBranch = usePanelStore((s) => s.currentBranch);
   const filter = usePanelStore((s) => s.filter);
   const setFilter = usePanelStore((s) => s.setFilter);
@@ -311,8 +310,6 @@ export function BranchTree({
   const containerRef = usePreventSelect();
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [currentBranchRowSelected, setCurrentBranchRowSelected] =
-    useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Context menu state
@@ -368,7 +365,6 @@ export function BranchTree({
   }, []);
 
   const toggle = (key: string) => {
-    setCurrentBranchRowSelected(false);
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -384,9 +380,6 @@ export function BranchTree({
       (!searchQuery ||
         b.name.toLowerCase().includes(searchQuery.toLowerCase())),
   );
-
-  const headBranch = localBranches.find((b) => b.isCurrent);
-  const headCommit = commits.find((c) => c.refs.some((r) => r.type === "HEAD"));
 
   const localTreeRaw = branchGroupByDirectory
     ? branchesToTree(localBranches)
@@ -422,15 +415,11 @@ export function BranchTree({
       : []),
   ];
 
-  const handleClick = useModifierClickSelection<string>(
-    (branchName, mode) => {
-      selectBranch(branchName, mode, allVisibleBranches);
-    },
-    () => setCurrentBranchRowSelected(false),
-  );
+  const handleClick = useModifierClickSelection<string>((branchName, mode) => {
+    selectBranch(branchName, mode, allVisibleBranches);
+  });
 
   const handleBranchDoubleClick = (name: string) => {
-    setCurrentBranchRowSelected(false);
     if (filter.branch === name) {
       setFilter({ branch: "" });
     } else {
@@ -557,33 +546,6 @@ export function BranchTree({
             )}
           </div>
         </div>
-
-        {/* HEAD – unified "Current Branch" entry */}
-        {(headBranch || headCommit) && (
-          <div
-            onClick={() => {
-              setCurrentBranchRowSelected(true);
-            }}
-            onDoubleClick={() => {
-              if (headBranch) {
-                handleBranchDoubleClick(headBranch.name);
-              }
-            }}
-            style={{
-              padding: "4px 8px 4px 20px",
-              cursor: "pointer",
-              fontWeight: 600,
-              background: currentBranchRowSelected
-                ? "var(--selected-bg)"
-                : "transparent",
-              color: currentBranchRowSelected
-                ? "var(--selected-fg)"
-                : "var(--description-fg)",
-            }}
-          >
-            Current Branch: {headBranch?.name ?? "detached"}
-          </div>
-        )}
 
         {/* Local */}
         <GroupSection
