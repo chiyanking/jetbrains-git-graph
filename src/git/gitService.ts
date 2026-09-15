@@ -68,16 +68,24 @@ export class GitService {
     maxBuffer = MAX_BUFFER,
     envOverrides: NodeJS.ProcessEnv = {},
   ): Promise<string> {
-    const { stdout } = await execFileAsync("git", args, {
-      cwd: this.cwd,
-      maxBuffer,
-      env: {
-        ...process.env,
-        LC_ALL: "C",
-        GIT_TERMINAL_PROMPT: "0",
-        ...envOverrides,
+    const { stdout } = await execFileAsync(
+      "git",
+      // Disable path quoting at the command line so non-ASCII paths come
+      // back as raw UTF-8 regardless of the user's git config: with the
+      // default core.quotepath=true, LC_ALL=C below makes git C-style
+      // quote them as octal escapes ("\345\204\277...").
+      ["-c", "core.quotepath=false", ...args],
+      {
+        cwd: this.cwd,
+        maxBuffer,
+        env: {
+          ...process.env,
+          LC_ALL: "C",
+          GIT_TERMINAL_PROMPT: "0",
+          ...envOverrides,
+        },
       },
-    });
+    );
     return stdout;
   }
 
@@ -1521,63 +1529,26 @@ fs.writeFileSync(messagePath, process.env.GITLOG_SQUASH_MESSAGE || "");
   }
 
   async shelveChanges(message: string, filePaths?: string[]): Promise<void> {
+    const args = ["stash", "push", "-u", "-m", message || "Shelved changes"];
     if (filePaths && filePaths.length > 0) {
-      // Strategy: to stash only specific files without pulling in other staged files,
-      // we need to temporarily reset the index, stage only our target files, then stash.
-
-      // 1. Save current index state by creating a temporary stash of the index
-      //    We use a different approach: reset index, add targets, stash, restore index.
-
-      // Get current status to know what's staged
-      const statusBefore = await this.execGit(["status", "--porcelain=v1"]);
-      const previouslyStaged: string[] = [];
-      for (const line of statusBefore.split("\n")) {
-        if (line.length < 4) continue;
-        const indexStatus = line[0];
-        if (indexStatus !== " " && indexStatus !== "?" && indexStatus !== "!") {
-          const rest = line.substring(3);
-          const arrowIdx = rest.indexOf(" -> ");
-          const filePath =
-            arrowIdx !== -1 ? rest.substring(arrowIdx + 4) : rest;
-          previouslyStaged.push(filePath);
-        }
-      }
-
-      // 2. Reset the index (unstage everything) without touching working tree
-      try {
-        await this.execGit(["reset", "HEAD"]);
-      } catch {
-        // May fail if there's no HEAD (initial commit) — that's ok
-      }
-
-      // 3. Stage only the target files
-      await this.execGit(["add", "--", ...filePaths]);
-
-      // 4. Stash only the staged files
-      await this.execGit([
-        "stash",
-        "push",
-        "--staged",
-        "-m",
-        message || "Shelved changes",
-      ]);
-
-      // 5. Re-stage previously staged files (that weren't stashed)
-      const remainingToStage = previouslyStaged.filter(
-        (f) => !filePaths.includes(f),
+      // Use the pathspec form (git >= 2.13): stashes the selected files'
+      // changes and restores them to HEAD, leaving other files' staging
+      // untouched. Do NOT use `--staged` (git >= 2.35 only) with a manual
+      // reset/re-add dance — on older git it errors mid-way and loses the
+      // user's staging state.
+      const status = await this.getStatus();
+      const selected = new Set(filePaths);
+      const hasChanges = status.some(
+        (f) => selected.has(f.path) || (!!f.oldPath && selected.has(f.oldPath)),
       );
-      if (remainingToStage.length > 0) {
-        try {
-          await this.execGit(["add", "--", ...remainingToStage]);
-        } catch {
-          // Some files may no longer exist, ignore errors
-        }
+      if (!hasChanges) {
+        // A pathspec stash matching no changes exits 0 without creating a
+        // stash; surface a clear error instead (matches ideaShelveChanges).
+        throw new Error("No changes to shelve");
       }
-    } else {
-      // Stash all changes including untracked
-      const args = ["stash", "push", "-m", message || "Shelved changes", "-u"];
-      await this.execGit(args);
+      args.push("--", ...filePaths);
     }
+    await this.execGit(args);
     this.invalidateCache();
   }
 
