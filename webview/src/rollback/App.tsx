@@ -182,7 +182,7 @@ export function RollbackApp() {
                 }}
                 onChange={() => handleToggleDir(leafPaths)}
                 onClick={(e) => e.stopPropagation()}
-                style={{ order: -1, marginRight: 4 }}
+                style={{ order: -1 }}
               />
             );
           }}
