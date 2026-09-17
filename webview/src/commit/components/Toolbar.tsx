@@ -88,7 +88,6 @@ export function Toolbar({
         <button
           type="button"
           className="commit-toolbar-btn"
-          style={{ opacity: 1 }}
           onClick={() => bridge.request("pullBranch", {})}
         >
           <PullIcon />
@@ -98,7 +97,6 @@ export function Toolbar({
         <button
           type="button"
           className="commit-toolbar-btn"
-          style={{ opacity: 1 }}
           onClick={() => bridge.request("openPushPanel")}
         >
           <PushIcon />
@@ -351,20 +349,10 @@ function CollapseAllIcon() {
   );
 }
 
-/** Push icon — green ↗ text matching branch ahead indicator */
 function PushIcon() {
-  return (
-    <span style={{ color: "#499c54", fontSize: "16px", fontWeight: 400 }}>
-      ↗
-    </span>
-  );
+  return <span className="commit-toolbar-arrow">↗</span>;
 }
 
-/** Pull icon — blue ↙ text matching branch behind indicator */
 function PullIcon() {
-  return (
-    <span style={{ color: "#3574f0", fontSize: "16px", fontWeight: 400 }}>
-      ↙
-    </span>
-  );
+  return <span className="commit-toolbar-arrow">↙</span>;
 }
