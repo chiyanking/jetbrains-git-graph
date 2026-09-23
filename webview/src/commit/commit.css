@@ -66,38 +66,48 @@
 /* ─── Tabs ─────────────────────────────────────────────────────── */
 .commit-tabs {
   display: flex;
-  border-bottom: 1px solid
-    var(--vscode-panel-border, var(--vscode-widget-border));
+  align-items: stretch;
   flex-shrink: 0;
   background: var(--vscode-sideBar-background);
-  padding: 4px 8px 8px;
-  gap: 4px;
+  padding: 0 12px;
+  gap: 24px;
+  overflow-x: auto;
 }
 
 .commit-tab {
-  padding: 6px 16px;
-  border: 1px solid transparent;
+  box-sizing: border-box;
+  height: 36px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: var(--vscode-foreground);
+  color: var(--vscode-panelTitle-inactiveForeground, var(--vscode-foreground));
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  opacity: 0.7;
-  border-radius: 6px;
-  transition:
-    opacity 0.15s,
-    background 0.15s;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .commit-tab:hover:not(:disabled) {
-  opacity: 1;
-  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+  color: var(--vscode-panelTitle-activeForeground, var(--vscode-foreground));
 }
 
 .commit-tab.active {
-  opacity: 1;
-  background: var(--vscode-tab-activeBackground, rgba(255, 255, 255, 0.1));
-  border: 1px solid var(--vscode-focusBorder, #007fd4);
+  color: var(--vscode-panelTitle-activeForeground, var(--vscode-foreground));
+  text-decoration-line: underline;
+  text-decoration-color: var(
+    --vscode-panelTitle-activeBorder,
+    var(--vscode-foreground)
+  );
+  text-decoration-thickness: 1px;
+  text-underline-offset: 8px;
+}
+
+.commit-tab:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -3px;
 }
 
 /* ─── Content ──────────────────────────────────────────────────── */

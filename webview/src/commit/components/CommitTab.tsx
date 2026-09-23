@@ -120,25 +120,14 @@ export function CommitTab() {
         onRollback={() => {
           // Rollback operates on the files checked in the local changes list.
           // A path can appear twice when it has both staged and unstaged changes;
-          // rollbackFile restores the whole path, so show it only once.
-          const selectedPaths = new Set<string>();
-          const selectedFilesForRollback = changes
+          // rollbackFile restores the whole path, so send it only once.
+          const selectedPaths = changes
             .filter((file) => selectedFiles.has(`${file.path}:${file.staged}`))
-            .filter((file) => {
-              if (selectedPaths.has(file.path)) return false;
-              selectedPaths.add(file.path);
-              return true;
-            })
-            .map((file) => ({
-              path: file.path,
-              status: file.status,
-              staged: file.staged,
-            }));
+            .map((file) => file.path);
+          const uniquePaths = [...new Set(selectedPaths)];
 
-          if (selectedFilesForRollback.length > 0) {
-            bridge.request("openRollbackPanel", {
-              files: selectedFilesForRollback,
-            });
+          if (uniquePaths.length > 0) {
+            bridge.request("rollbackFiles", { filePaths: uniquePaths });
           }
         }}
         hasChanges={changes.length > 0}
