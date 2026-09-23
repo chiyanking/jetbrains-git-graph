@@ -14,6 +14,9 @@ class RepositoryTreeItem extends vscode.TreeItem {
   ) {
     super(repository.name, vscode.TreeItemCollapsibleState.None);
 
+    // Mark the row as a real folder resource so VS Code and other views can
+    // receive it through the standard text/uri-list drag protocol.
+    this.resourceUri = vscode.Uri.file(repository.root);
     this.description = branch ?? undefined;
     this.tooltip = new vscode.MarkdownString(
       `**${repository.name}**\n\n${repository.root}${branch ? `\n\nBranch: \`${branch}\`` : ""}`,
@@ -33,8 +36,14 @@ class RepositoryTreeItem extends vscode.TreeItem {
 
 /** Native repository list shown above the Commit webview. */
 export class RepositoriesViewProvider
-  implements vscode.TreeDataProvider<RepositoryTreeItem>, vscode.Disposable
+  implements
+    vscode.TreeDataProvider<RepositoryTreeItem>,
+    vscode.TreeDragAndDropController<RepositoryTreeItem>,
+    vscode.Disposable
 {
+  readonly dragMimeTypes = ["text/uri-list"];
+  readonly dropMimeTypes: readonly string[] = [];
+
   private readonly changeEmitter = new vscode.EventEmitter<
     RepositoryTreeItem | undefined
   >();
@@ -72,6 +81,18 @@ export class RepositoriesViewProvider
 
   refresh(): void {
     this.changeEmitter.fire(undefined);
+  }
+
+  handleDrag(
+    source: readonly RepositoryTreeItem[],
+    dataTransfer: vscode.DataTransfer,
+  ): void {
+    const uriList = source
+      .map((item) => vscode.Uri.file(item.repository.root).toString())
+      .join("\r\n");
+    if (uriList) {
+      dataTransfer.set("text/uri-list", new vscode.DataTransferItem(uriList));
+    }
   }
 
   dispose(): void {

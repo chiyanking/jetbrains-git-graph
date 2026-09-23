@@ -122,10 +122,11 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(
     repositoriesProvider,
-    vscode.window.registerTreeDataProvider(
-      "git-brains.repositories",
-      repositoriesProvider,
-    ),
+    vscode.window.createTreeView("git-brains.repositories", {
+      treeDataProvider: repositoriesProvider,
+      dragAndDropController: repositoriesProvider,
+      canSelectMany: true,
+    }),
   );
 
   // 3. MergeEditorManager + ConflictsManager (always created)
