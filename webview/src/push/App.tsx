@@ -2,6 +2,7 @@ import { Allotment } from "allotment";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CodiconListFlat from "~icons/codicon/list-flat";
 import CodiconListTree from "~icons/codicon/list-tree";
+import CodiconWarning from "~icons/codicon/warning";
 import { bridge } from "../shared/bridge";
 import { CommitInfo } from "../shared/components/CommitInfo";
 import { FileTree } from "../shared/components/FileTree";
@@ -28,17 +29,29 @@ function PushRejectedDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="push-rejected-overlay">
-      <div className="push-rejected-dialog">
-        <div className="push-rejected-header">
-          <span className="push-rejected-icon">⚠️</span>
-          <span className="push-rejected-title">Push Rejected</span>
+    <div className="app-dialog-overlay push-rejected-overlay">
+      <div
+        className="app-dialog app-dialog--compact push-rejected-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="push-rejected-title"
+        aria-describedby="push-rejected-message"
+      >
+        <div className="app-dialog-header push-rejected-header">
+          <span className="push-rejected-icon" aria-hidden="true">
+            <CodiconWarning />
+          </span>
+          <h2 id="push-rejected-title" className="app-dialog-title">
+            Push Rejected
+          </h2>
         </div>
-        <p className="push-rejected-message">
-          Push of the current branch "{branchName}" was rejected. Remote changes
-          need to be merged before pushing.
-        </p>
-        <div className="push-rejected-actions">
+        <div className="app-dialog-body">
+          <p id="push-rejected-message" className="push-rejected-message">
+            Push of the current branch "{branchName}" was rejected. Remote
+            changes need to be integrated before pushing.
+          </p>
+        </div>
+        <div className="app-dialog-actions push-rejected-actions">
           <button
             type="button"
             className="push-btn push-btn-secondary"

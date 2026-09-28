@@ -133,7 +133,8 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Squash commit message editor */
+/* Shared modal surface used across the Git Graph webviews. */
+.app-dialog-overlay,
 .squash-message-modal {
   position: fixed;
   inset: 0;
@@ -142,7 +143,197 @@ button:disabled {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.38);
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.app-dialog,
+.squash-message-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border: 1px solid var(--vscode-widget-border, var(--border));
+  border-radius: 6px;
+  background: var(--vscode-editorWidget-background, #252526);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.32),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+  color: var(--app-fg);
+}
+
+.app-dialog--compact {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.app-dialog-header {
+  display: flex;
+  min-height: 43px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--vscode-widget-border, var(--border));
+}
+
+.app-dialog-title {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.app-dialog-close {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--app-fg);
+  opacity: 0.72;
+}
+
+.app-dialog-close:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground, var(--hover-bg));
+  opacity: 1;
+}
+
+.app-dialog-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.app-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.app-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-dialog-label {
+  color: var(--app-fg);
+  font-size: var(--font-size);
+}
+
+.app-dialog-input {
+  width: 100%;
+  height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border, var(--input-border));
+  border-radius: 2px;
+  outline: none;
+  background: var(--vscode-input-background, var(--input-bg));
+  color: var(--vscode-input-foreground, var(--input-fg));
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+}
+
+.app-dialog-input:focus {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.app-dialog-input.is-invalid {
+  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+
+.app-dialog-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.app-dialog-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-dialog-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--vscode-checkbox-selectBackground, #3574f0);
+}
+
+.app-dialog-message,
+.app-dialog-hint {
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-message strong {
+  color: var(--app-fg);
+  font-weight: 600;
+}
+
+.app-dialog-hint {
+  color: var(--description-fg);
+  font-size: 12px;
+}
+
+.app-dialog-error {
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+  border-radius: 3px;
+  background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+  color: var(--vscode-inputValidation-errorForeground, var(--error-fg));
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--vscode-widget-border, var(--border));
+}
+
+.app-dialog-actions--split {
+  justify-content: space-between;
+}
+
+.app-dialog-actions-end {
+  display: flex;
+  gap: 8px;
+}
+
+.app-dialog-danger {
+  border: 1px solid var(--vscode-errorForeground, #f48771);
+  background: transparent;
+  color: var(--vscode-errorForeground, #f48771);
+}
+
+.app-dialog-danger:hover:not(:disabled) {
+  background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+}
+
+.app-dialog-close:focus-visible,
+.app-dialog-input:focus-visible,
+.app-dialog-checkbox input:focus-visible,
+.app-dialog-actions button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+/* Squash commit message editor */
+.squash-message-modal {
+  background: rgba(0, 0, 0, 0.42);
 }
 
 .squash-message-dialog {
@@ -151,11 +342,6 @@ button:disabled {
   width: min(560px, calc(100vw - 32px));
   max-height: min(620px, calc(100vh - 32px));
   padding: 16px;
-  border: 1px solid var(--vscode-widget-border, #4b4d52);
-  border-radius: 10px;
-  background: var(--vscode-editorWidget-background, #2b2d30);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-  color: var(--app-fg);
 }
 
 .squash-message-dialog-title {
@@ -176,7 +362,7 @@ button:disabled {
   resize: vertical;
   padding: 10px;
   border: 1px solid var(--vscode-input-border, var(--border));
-  border-radius: 5px;
+  border-radius: 2px;
   outline: none;
   background: var(--vscode-input-background, #1f2023);
   color: var(--vscode-input-foreground, var(--app-fg));
@@ -203,6 +389,21 @@ button:disabled {
 
 .squash-message-dialog-actions .commit-btn {
   font-size: var(--font-size);
+}
+
+@media (max-width: 480px) {
+  .app-dialog-options {
+    flex-direction: column;
+  }
+
+  .app-dialog-actions--split {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-dialog-actions-end {
+    justify-content: flex-end;
+  }
 }
 
 .selectable-row {

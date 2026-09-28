@@ -446,54 +446,36 @@ button.push-menu-item:hover:not(:disabled) {
 
 /* Push Rejected Dialog */
 .push-rejected-overlay {
-  position: fixed;
-  inset: 0;
   z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
 }
 
 .push-rejected-dialog {
-  background: var(--app-bg, #fff);
-  border: 1px solid var(--border, #ddd);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  padding: 24px 28px;
-  max-width: 440px;
-  width: 90%;
+  width: min(440px, calc(100vw - 32px));
 }
 
 .push-rejected-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .push-rejected-icon {
-  font-size: 28px;
+  display: inline-flex;
+  color: var(--vscode-notificationsWarningIcon-foreground, #cca700);
 }
 
-.push-rejected-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--app-fg, #333);
+.push-rejected-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .push-rejected-message {
-  font-size: 13px;
-  color: var(--app-fg, #555);
+  margin: 0;
+  color: var(--app-fg, #ccc);
   line-height: 1.5;
-  margin: 0 0 20px 0;
+  overflow-wrap: anywhere;
 }
 
 .push-rejected-actions {
-  display: flex;
-  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
 }
 
 .push-btn-rebase {

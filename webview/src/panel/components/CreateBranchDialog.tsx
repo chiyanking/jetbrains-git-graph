@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import CodiconClose from "~icons/codicon/close";
 
 export interface CreateBranchDialogProps {
   /** Title shown at top, e.g. "Create Branch from dev" */
@@ -14,46 +15,6 @@ export interface CreateBranchDialogProps {
     checkout: boolean;
     force: boolean;
   }) => Promise<string | undefined>;
-}
-
-/** Custom checkbox matching commit panel style */
-function Checkbox({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <span
-      onClick={() => onChange(!checked)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 16,
-        height: 16,
-        borderRadius: 3,
-        border: checked ? "none" : "1.5px solid var(--description-fg, #999)",
-        background: checked ? "#3574f0" : "transparent",
-        cursor: "pointer",
-        flexShrink: 0,
-        transition: "background 0.1s, border 0.1s",
-      }}
-    >
-      {checked && (
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path
-            d="M2.5 6L5 8.5L9.5 3.5"
-            stroke="#fff"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-    </span>
-  );
 }
 
 export function CreateBranchDialog({
@@ -72,25 +33,12 @@ export function CreateBranchDialog({
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Focus and select input on mount
     const input = inputRef.current;
     if (input) {
       input.focus();
       input.select();
     }
   }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      } else if (e.key === "Enter" && !submitting) {
-        handleSubmit();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  });
 
   const handleSubmit = useCallback(async () => {
     const trimmed = branchName.trim();
@@ -99,22 +47,29 @@ export function CreateBranchDialog({
     setSubmitting(true);
     try {
       const errMsg = await onConfirm({ branchName: trimmed, checkout, force });
-      if (errMsg) {
-        setError(errMsg);
-      }
+      if (errMsg) setError(errMsg);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSubmitting(false);
     }
   }, [branchName, checkout, force, onConfirm]);
 
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === backdropRef.current) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         onClose();
+      } else if (event.key === "Enter" && !submitting) {
+        handleSubmit();
       }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleSubmit, onClose, submitting]);
+
+  const handleBackdropClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.target === backdropRef.current) onClose();
     },
     [onClose],
   );
@@ -122,186 +77,92 @@ export function CreateBranchDialog({
   return (
     <div
       ref={backdropRef}
-      onClick={handleBackdropClick}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 99999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0, 0, 0, 0.4)",
-      }}
+      className="app-dialog-overlay"
+      onMouseDown={handleBackdropClick}
     >
       <div
-        style={{
-          background: "var(--vscode-editorWidget-background, #252526)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: "16px 20px",
-          minWidth: 380,
-          maxWidth: 500,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        }}
+        className="app-dialog app-dialog--compact"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-branch-dialog-title"
       >
-        {/* Title */}
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            marginBottom: 12,
-            color: "var(--app-fg)",
-          }}
-        >
-          {title}
+        <div className="app-dialog-header">
+          <h2 id="create-branch-dialog-title" className="app-dialog-title">
+            {title}
+          </h2>
+          <button
+            type="button"
+            className="app-dialog-close"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+          >
+            <CodiconClose />
+          </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div
-            style={{
-              background:
-                "var(--vscode-inputValidation-errorBackground, #5a1d1d)",
-              border:
-                "1px solid var(--vscode-inputValidation-errorBorder, #be1100)",
-              borderRadius: 4,
-              padding: "8px 10px",
-              marginBottom: 12,
-              fontSize: 12,
-              color: "var(--vscode-errorForeground, #f48771)",
-              lineHeight: 1.4,
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <div className="app-dialog-body">
+          {error && (
+            <div className="app-dialog-error" role="alert">
+              {error}
+            </div>
+          )}
 
-        {/* Branch Name Input */}
-        <div style={{ marginBottom: 12 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 4,
-            }}
-          >
-            <label
-              htmlFor="branch-name-input"
-              style={{
-                fontSize: 12,
-                color: "var(--description-fg)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Branch Name:
-            </label>
+          <label className="app-dialog-field" htmlFor="branch-name-input">
+            <span className="app-dialog-label">Branch name</span>
             <input
               ref={inputRef}
               id="branch-name-input"
+              className={`app-dialog-input${error ? " is-invalid" : ""}`}
               type="text"
               value={branchName}
-              onChange={(e) => {
-                setBranchName(e.target.value);
+              onChange={(event) => {
+                setBranchName(event.target.value);
                 setError(null);
               }}
               placeholder={placeholder}
-              style={{
-                flex: 1,
-                background: "var(--input-bg)",
-                color: "var(--input-fg)",
-                border: error
-                  ? "1px solid var(--vscode-inputValidation-errorBorder, #be1100)"
-                  : "1px solid var(--input-border)",
-                borderRadius: 4,
-                padding: "4px 8px",
-                fontSize: "var(--font-size)",
-                fontFamily: "var(--font-family)",
-                outline: "none",
-                height: 28,
-              }}
+              aria-invalid={Boolean(error)}
             />
+          </label>
+
+          <div className="app-dialog-options">
+            <label className="app-dialog-checkbox">
+              <input
+                type="checkbox"
+                checked={checkout}
+                onChange={(event) => setCheckout(event.target.checked)}
+              />
+              <span>Checkout branch</span>
+            </label>
+            <label className="app-dialog-checkbox">
+              <input
+                type="checkbox"
+                checked={force}
+                onChange={(event) => {
+                  setForce(event.target.checked);
+                  setError(null);
+                }}
+              />
+              <span>Overwrite existing branch</span>
+            </label>
           </div>
         </div>
 
-        {/* Checkboxes */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            marginBottom: 16,
-          }}
-        >
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            <Checkbox checked={checkout} onChange={(v) => setCheckout(v)} />
-            Checkout branch
-          </label>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            <Checkbox
-              checked={force}
-              onChange={(v) => {
-                setForce(v);
-                setError(null);
-              }}
-            />
-            Overwrite existing branch
-          </label>
-        </div>
-
-        {/* Buttons */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+        <div className="app-dialog-actions">
           <button
             type="button"
+            className="commit-btn commit-btn-secondary"
             onClick={onClose}
-            style={{
-              background: "var(--vscode-button-secondaryBackground, #3a3d41)",
-              color: "var(--vscode-button-secondaryForeground, var(--app-fg))",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 14px",
-              fontSize: 12,
-              height: 28,
-              cursor: "pointer",
-            }}
           >
             Cancel
           </button>
           <button
             type="button"
+            className="commit-btn commit-btn-primary"
             onClick={handleSubmit}
             disabled={!branchName.trim() || submitting}
-            style={{
-              background: "var(--button-bg)",
-              color: "var(--button-fg)",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 14px",
-              fontSize: 12,
-              height: 28,
-              cursor: branchName.trim() && !submitting ? "pointer" : "default",
-              opacity: branchName.trim() && !submitting ? 1 : 0.4,
-            }}
           >
-            Create
+            {submitting ? "Creating..." : "Create"}
           </button>
         </div>
       </div>
