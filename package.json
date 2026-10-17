@@ -53,7 +53,7 @@
         {
           "id": "git-brains-commit",
           "title": "Source Control",
-          "icon": "images/commit-icon.svg"
+          "icon": "images/source-control.svg"
         }
       ]
     },
