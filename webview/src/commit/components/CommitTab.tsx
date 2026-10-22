@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { bridge } from "../../shared/bridge";
+import { NativeContextMenu } from "../../shared/components/NativeContextMenu";
 import {
   useCommitStore,
   type WorkingTreeFile,
 } from "../../shared/store/commit-store";
+import { useWorkingFileShortcuts } from "../hooks/useWorkingFileShortcuts";
 import { CommitFileContextMenu } from "./CommitFileContextMenu";
 import { CommitMessageArea } from "./CommitMessageArea";
 import { FileItem } from "./FileItem";
 import { Toolbar } from "./Toolbar";
 
 export function CommitTab() {
+  useWorkingFileShortcuts();
   const {
     changes,
     selectedFiles,
@@ -27,12 +30,14 @@ export function CommitTab() {
   } = useCommitStore();
 
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     file: WorkingTreeFile;
   } | null>(null);
 
   const [dirContextMenu, setDirContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     files: WorkingTreeFile[];
@@ -82,7 +87,15 @@ export function CommitTab() {
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, file: WorkingTreeFile) => {
-      setContextMenu({ x: e.clientX, y: e.clientY, file });
+      const state = useCommitStore.getState();
+      const key = `${file.path}:${file.staged}`;
+      if (!state.highlightedFiles.has(key)) state.highlightFile(key, "single");
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        file,
+      });
       setDirContextMenu(null);
     },
     [],
@@ -92,7 +105,13 @@ export function CommitTab() {
     (e: React.MouseEvent, files: WorkingTreeFile[], dirName: string) => {
       e.preventDefault();
       e.stopPropagation();
-      setDirContextMenu({ x: e.clientX, y: e.clientY, files, dirName });
+      setDirContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        files,
+        dirName,
+      });
       setContextMenu(null);
     },
     [],
@@ -238,6 +257,7 @@ export function CommitTab() {
 
       {contextMenu && (
         <CommitFileContextMenu
+          key={contextMenu.requestId}
           x={contextMenu.x}
           y={contextMenu.y}
           file={contextMenu.file}
@@ -246,10 +266,10 @@ export function CommitTab() {
       )}
       {dirContextMenu && (
         <DirContextMenu
+          key={dirContextMenu.requestId}
           x={dirContextMenu.x}
           y={dirContextMenu.y}
           files={dirContextMenu.files}
-          dirName={dirContextMenu.dirName}
           onClose={closeDirContextMenu}
         />
       )}
@@ -695,71 +715,13 @@ function DirContextMenu({
   x,
   y,
   files,
-  dirName,
   onClose,
 }: {
   x: number;
   y: number;
   files: WorkingTreeFile[];
-  dirName: string;
   onClose: () => void;
 }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number }>({
-    top: y,
-    left: x,
-  });
-
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    requestAnimationFrame(() => {
-      const rect = menu.getBoundingClientRect();
-      const viewportH = window.innerHeight;
-      const viewportW = window.innerWidth;
-      let top = y;
-      let left = x;
-      if (top + rect.height > viewportH) {
-        const above = y - rect.height;
-        top = above >= 4 ? above : Math.max(4, viewportH - rect.height - 4);
-      }
-      if (left + rect.width > viewportW) {
-        left = Math.max(4, viewportW - rect.width - 4);
-      }
-      setPosition({ top, left });
-    });
-  }, [x, y]);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node))
-        onClose();
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    const handleScroll = (e: Event) => {
-      if (
-        menuRef.current &&
-        e.target instanceof Node &&
-        !menuRef.current.contains(e.target)
-      )
-        onClose();
-    };
-    document.addEventListener("mousedown", handleClick, true);
-    document.addEventListener("keydown", handleKey);
-    window.addEventListener("blur", onClose);
-    document.addEventListener("scroll", handleScroll, true);
-    window.addEventListener("resize", onClose);
-    return () => {
-      document.removeEventListener("mousedown", handleClick, true);
-      document.removeEventListener("keydown", handleKey);
-      window.removeEventListener("blur", onClose);
-      document.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", onClose);
-    };
-  }, [onClose]);
-
   const handleDelete = useCallback(() => {
     const paths = files.map((f) => f.path);
     import("../../shared/bridge").then(({ bridge }) => {
@@ -787,106 +749,16 @@ function DirContextMenu({
   }, [files, onClose]);
 
   return (
-    <div
-      className="commit-context-menu"
-      ref={menuRef}
-      style={{
-        position: "fixed",
-        left: position.left,
-        top: position.top,
-        zIndex: 1000,
-      }}
-    >
-      <button
-        type="button"
-        className="commit-context-menu-item"
-        onClick={handleRollback}
-      >
-        <RollbackIcon />
-        <span>Rollback...</span>
-      </button>
-
-      <div className="commit-context-menu-separator" />
-
-      <button
-        type="button"
-        className="commit-context-menu-item"
-        onClick={handleOpenInSystemFolder}
-      >
-        <FolderOpenIcon />
-        <span>Open in System Folder</span>
-      </button>
-
-      <div className="commit-context-menu-separator" />
-
-      <button
-        type="button"
-        className="commit-context-menu-item"
-        onClick={handleDelete}
-      >
-        <DeleteDirIcon />
-        <span>Delete "{dirName}"...</span>
-        <span className="commit-context-menu-shortcut">⌫</span>
-      </button>
-    </div>
-  );
-}
-
-function FolderOpenIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="commit-context-menu-icon"
-    >
-      <path
-        d="M1.5 3.5C1.5 2.95 1.95 2.5 2.5 2.5H5.5L7 4H13.5C14.05 4 14.5 4.45 14.5 5V12.5C14.5 13.05 14.05 13.5 13.5 13.5H2.5C1.95 13.5 1.5 13.05 1.5 12.5V3.5Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function DeleteDirIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="commit-context-menu-icon"
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M7 2H9C9.55228 2 10 2.44772 10 3H6C6 2.44772 6.44772 2 7 2ZM5 3C5 1.89543 5.89543 1 7 1H9C10.1046 1 11 1.89543 11 3H13C13.5523 3 14 3.44772 14 4V5V6H13V13C13 14.1046 12.1046 15 11 15H5C3.89543 15 3 14.1046 3 13V6H2V5V4C2 3.44772 2.44772 3 3 3H5ZM11 4H10H6H5H3V5H4H12H13V4H11ZM4 6H12V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V6ZM6.5 7C6.22386 7 6 7.22386 6 7.5V11.5C6 11.7761 6.22386 12 6.5 12C6.77614 12 7 11.7761 7 11.5V7.5C7 7.22386 6.77614 7 6.5 7ZM9 7.5C9 7.22386 9.22386 7 9.5 7C9.77614 7 10 7.22386 10 7.5V11.5C10 11.7761 9.77614 12 9.5 12C9.22386 12 9 11.7761 9 11.5V7.5Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-/** expui/vcs/revert.svg */
-function RollbackIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="commit-context-menu-icon"
-    >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M5.85363 1.85355C6.04889 1.65829 6.04889 1.34171 5.85363 1.14645C5.65837 0.951184 5.34178 0.951184 5.14652 1.14645L1.64652 4.64645L1.29297 5L1.64652 5.35355L5.14652 8.85355C5.34178 9.04882 5.65837 9.04882 5.85363 8.85355C6.04889 8.65829 6.04889 8.34171 5.85363 8.14645L3.20718 5.5H10.5001C12.4331 5.5 14.0001 7.067 14.0001 9C14.0001 10.933 12.4331 12.5 10.5001 12.5H5.50008C5.22393 12.5 5.00008 12.7239 5.00008 13C5.00008 13.2761 5.22393 13.5 5.50008 13.5H10.5001C12.9854 13.5 15.0001 11.4853 15.0001 9C15.0001 6.51472 12.9854 4.5 10.5001 4.5H3.20718L5.85363 1.85355Z"
-        fill="currentColor"
-      />
-    </svg>
+    <NativeContextMenu
+      x={x}
+      y={y}
+      section="workingDirectory"
+      items={[
+        { id: "rollback", action: handleRollback },
+        { id: "systemFolder", action: handleOpenInSystemFolder },
+        { id: "deleteDirectory", action: handleDelete },
+      ]}
+    />
   );
 }
 

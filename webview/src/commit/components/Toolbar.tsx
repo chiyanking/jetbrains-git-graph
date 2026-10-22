@@ -186,7 +186,6 @@ function ViewOptionsMenu({ onClose }: { onClose: () => void }) {
           <span>Directory</span>
           <span className="commit-context-menu-shortcut">^P</span>
         </button>
-        <div className="commit-context-menu-separator" />
         <div className="commit-context-menu-header">Show</div>
         <button
           type="button"

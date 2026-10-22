@@ -279,7 +279,6 @@ function SettingsMenu({ onClose }: { onClose: () => void }) {
       >
         <span>Navigate Log to Branch Head</span>
       </button>
-      <div className="commit-context-menu-separator" />
       <button
         type="button"
         className="commit-context-menu-item"

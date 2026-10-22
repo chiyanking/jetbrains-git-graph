@@ -22,6 +22,7 @@ export function FileChangeTree() {
   const [viewMode, setViewMode] = useState<"tree" | "flat">("tree");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     file: DiffFile;
@@ -48,7 +49,12 @@ export function FileChangeTree() {
 
   const handleFileContextMenu = useCallback(
     (e: React.MouseEvent, file: DiffFile) => {
-      setContextMenu({ x: e.clientX, y: e.clientY, file });
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        file,
+      });
     },
     [],
   );
@@ -164,6 +170,7 @@ export function FileChangeTree() {
       </div>
       {contextMenu && (
         <FileContextMenu
+          key={contextMenu.requestId}
           x={contextMenu.x}
           y={contextMenu.y}
           file={contextMenu.file}

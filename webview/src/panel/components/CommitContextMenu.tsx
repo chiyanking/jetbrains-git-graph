@@ -1,101 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { bridge, bridgeWithProgress } from "../../shared/bridge";
+import type { CommitShortcutEvent } from "../../shared/bridge/types";
+import {
+  NativeContextMenu,
+  type NativeMenuItem,
+} from "../../shared/components/NativeContextMenu";
 import { usePanelStore } from "../../shared/store/panel-store";
 import type { Commit } from "../../shared/types/git";
-
-// IntelliJ-style icons for commit context menu
-function IconCopy() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect
-        x="2.5"
-        y="3.5"
-        width="9"
-        height="10"
-        rx="1.5"
-        stroke="currentColor"
-      />
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M11 2h.6C12.37 2 13 2.63 13 3.4v.51c0 .03 0 .06 0 .09v7.55c.6-.44 1-1.15 1-1.95V3.4C14 2.07 12.93 1 11.6 1H6.4c-.8 0-1.51.39-1.95 1H6.4H11z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function IconCherryPick() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="5" cy="11.5" r="2.5" stroke="currentColor" />
-      <circle cx="10.5" cy="10.5" r="2.5" stroke="currentColor" />
-      <path
-        d="M5 9C5 6 4 4 7 2"
-        stroke="currentColor"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M10.5 8C10.5 5.5 11 4 8 2"
-        stroke="currentColor"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-function IconRevert() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M5.85 1.85a.5.5 0 00-.7-.7L1.65 4.65 1.3 5l.35.35 3.5 3.5a.5.5 0 00.7-.7L3.21 5.5H10.5a3.5 3.5 0 010 7H5.5a.5.5 0 000 1h5a4.5 4.5 0 000-9H3.21l2.64-2.65z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function IconDrop() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M4 4.5h8M6 4.5V3.25C6 2.56 6.56 2 7.25 2h1.5C9.44 2 10 2.56 10 3.25V4.5M5 6.5v6.25c0 .69.56 1.25 1.25 1.25h3.5c.69 0 1.25-.56 1.25-1.25V6.5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M7 8v3M9 8v3" stroke="currentColor" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBranch() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="4.5" cy="4" r="2" stroke="currentColor" />
-      <path
-        d="M4.5 11.5H8.5C9.6 11.5 10.5 10.6 10.5 9.5V8"
-        stroke="currentColor"
-      />
-      <path d="M4.5 6.5V14.5" stroke="currentColor" strokeLinecap="round" />
-      <circle cx="10.5" cy="6" r="2" stroke="currentColor" />
-    </svg>
-  );
-}
-
-function IconTag() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M3 2.5h4.5l6 6-4.5 4.5-6-6V2.5z" stroke="currentColor" />
-      <circle cx="5.5" cy="5" r="1" fill="currentColor" />
-    </svg>
-  );
-}
+import { resetCommit } from "../actions/resetCommit";
 
 interface CommitContextMenuProps {
   x: number;
@@ -103,6 +16,10 @@ interface CommitContextMenuProps {
   commit: Commit;
   onClose: () => void;
   onCreateBranch?: (hash: string, defaultName: string) => void;
+  shortcut?: {
+    action: CommitShortcutEvent["action"];
+    onSettled: () => void;
+  };
 }
 
 export function CommitContextMenu({
@@ -111,15 +28,12 @@ export function CommitContextMenu({
   commit,
   onClose,
   onCreateBranch,
+  shortcut,
 }: CommitContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
   const currentBranch = usePanelStore((s) => s.currentBranch);
   const allCommits = usePanelStore((s) => s.commits);
   const selectedCommitHashes = usePanelStore((s) => s.selectedCommitHashes);
-  const [position, setPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  const [repoStateReady, setRepoStateReady] = useState(false);
   const [isRebasing, setIsRebasing] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
   const [isCherryPicking, setIsCherryPicking] = useState(false);
@@ -145,6 +59,7 @@ export function CommitContextMenu({
 
   // Query rebase/merge/cherry-pick state to determine if Drop Commit should be disabled
   useEffect(() => {
+    let cancelled = false;
     const fetchRepoState = async () => {
       try {
         const [rebaseState, mergeState, cherryPickState] = await Promise.all([
@@ -154,83 +69,24 @@ export function CommitContextMenu({
             isCherryPicking: boolean;
           }>,
         ]);
+        if (cancelled) return;
         setIsRebasing(rebaseState?.isRebasing ?? false);
         setIsMerging(mergeState?.isMerging ?? false);
         setIsCherryPicking(cherryPickState?.isCherryPicking ?? false);
       } catch {
-        // If we can't determine state, leave as not disabled
+        // Keep history edits disabled if repository state is unavailable.
+        if (!cancelled) {
+          setIsRebasing(true);
+        }
+      } finally {
+        if (!cancelled) setRepoStateReady(true);
       }
     };
     fetchRepoState();
-  }, []);
-
-  // Adjust position after first render
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    requestAnimationFrame(() => {
-      const rect = menu.getBoundingClientRect();
-      const viewportH = window.innerHeight;
-      const viewportW = window.innerWidth;
-
-      let top = y;
-      let left = x;
-
-      if (top + rect.height > viewportH) {
-        const above = y - rect.height;
-        if (above >= 4) {
-          top = above;
-        } else {
-          top = Math.max(4, viewportH - rect.height - 4);
-        }
-      }
-      if (left + rect.width > viewportW) {
-        left = Math.max(4, viewportW - rect.width - 4);
-      }
-
-      setPosition({ top, left });
-    });
-  }, [x, y]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    const handleBlur = () => onClose();
-    const handleScroll = (e: Event) => {
-      if (
-        menuRef.current &&
-        e.target instanceof Node &&
-        !menuRef.current.contains(e.target)
-      ) {
-        onClose();
-      }
-    };
-    const handleContextMenu = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside, true);
-    document.addEventListener("contextmenu", handleContextMenu, true);
-    document.addEventListener("keydown", handleEscape);
-    window.addEventListener("blur", handleBlur);
-    document.addEventListener("scroll", handleScroll, true);
-    window.addEventListener("resize", handleBlur);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside, true);
-      document.removeEventListener("contextmenu", handleContextMenu, true);
-      document.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", handleBlur);
+      cancelled = true;
     };
-  }, [onClose]);
+  }, []);
 
   const shortHash = commit.shortHash || commit.hash.slice(0, 8);
 
@@ -263,43 +119,17 @@ export function CommitContextMenu({
 
   const handleResetHard = async () => {
     onClose();
-    const result = (await bridge.request("showConfirmMessage", {
-      message: `Reset '${currentBranch}' to ${shortHash} (hard)? This will discard all uncommitted changes.`,
-      confirmLabel: "Reset",
-    })) as { confirmed: boolean };
-    if (!result.confirmed) return;
-    try {
-      await bridgeWithProgress("resetToCommit", {
-        hash: commit.hash,
-        mode: "hard",
-      });
-    } catch (err) {
-      console.error("Reset failed:", err);
-    }
+    await resetCommit(commit, currentBranch, "hard");
   };
 
   const handleResetMixed = async () => {
     onClose();
-    try {
-      await bridgeWithProgress("resetToCommit", {
-        hash: commit.hash,
-        mode: "mixed",
-      });
-    } catch (err) {
-      console.error("Reset failed:", err);
-    }
+    await resetCommit(commit, currentBranch, "mixed");
   };
 
   const handleResetSoft = async () => {
     onClose();
-    try {
-      await bridgeWithProgress("resetToCommit", {
-        hash: commit.hash,
-        mode: "soft",
-      });
-    } catch (err) {
-      console.error("Reset failed:", err);
-    }
+    await resetCommit(commit, currentBranch, "soft");
   };
 
   const handleRevert = async () => {
@@ -464,93 +294,64 @@ export function CommitContextMenu({
     isCherryPicking ||
     selectedCommits.length > 1;
 
-  const items: {
-    label: string;
-    action: () => void;
-    icon?: React.ReactNode;
-    disabled?: boolean;
-  }[] = [
+  const items: NativeMenuItem[] = [
+    { id: "copyHash", action: handleCopyHash },
+    { id: "cherryPick", action: handleCherryPick },
+    { id: "squash", action: handleSquash, disabled: isSquashCommitDisabled },
     {
-      label: `Copy Revision Number`,
-      action: handleCopyHash,
-      icon: <IconCopy />,
-    },
-    {
-      label: "Cherry-Pick",
-      action: handleCherryPick,
-      icon: <IconCherryPick />,
-    },
-    {
-      label: "Squash Commits...",
-      action: handleSquash,
-      disabled: isSquashCommitDisabled,
-    },
-    {
-      label: "Edit Commit Message",
+      id: "editMessage",
       action: handleEditCommitMessage,
       disabled: isEditCommitMessageDisabled,
     },
+    { id: "resetMixed", action: handleResetMixed },
+    { id: "resetSoft", action: handleResetSoft },
+    { id: "resetHard", action: handleResetHard },
+    { id: "checkoutRevision", action: handleCheckoutRevision },
+    { id: "revertCommit", action: handleRevert },
+    { id: "newBranch", action: handleNewBranch },
+    { id: "newTag", action: handleNewTag },
+    ...(filter.file ? [{ id: "showInLog", action: handleShowInGitLog }] : []),
     {
-      label: "Reset to Here (Mixed)",
-      action: handleResetMixed,
-      icon: <IconRevert />,
-    },
-    {
-      label: "Reset to Here (Soft)",
-      action: handleResetSoft,
-      icon: <IconRevert />,
-    },
-    {
-      label: "Reset to Here (Hard)",
-      action: handleResetHard,
-      icon: <IconRevert />,
-    },
-    { label: "Checkout Revision", action: handleCheckoutRevision },
-    { label: "Revert Commit", action: handleRevert },
-    {
-      label: "Drop Commit",
+      id: "dropCommit",
       action: handleDropCommit,
-      icon: <IconDrop />,
       disabled: isDropCommitDisabled,
     },
-    { label: "New Branch...", action: handleNewBranch, icon: <IconBranch /> },
-    { label: "New Tag...", action: handleNewTag, icon: <IconTag /> },
   ];
 
-  // Add "Show in Git Log" when file filter is active
-  if (filter.file) {
-    items.push({
-      label: "Show in Git Log",
-      action: handleShowInGitLog,
-      icon: <IconBranch />,
-    });
-  }
+  const shortcutStarted = useRef(false);
+  const shortcutState = useRef({ items, onClose, shortcut });
+  shortcutState.current = { items, onClose, shortcut };
+  useEffect(() => {
+    if (!repoStateReady || !shortcut || shortcutStarted.current) return;
+    shortcutStarted.current = true;
+    const { items, onClose } = shortcutState.current;
+    const item = items.find(({ id }) => id === shortcut.action);
+    if (!item || item.disabled) {
+      onClose();
+      shortcut.onSettled();
+      return;
+    }
+    // Reuse the menu handler, including its dialogs and repository guards.
+    void Promise.resolve()
+      .then(() => item.action())
+      .catch((error) => {
+        console.error("Commit shortcut failed:", error);
+        onClose();
+      })
+      .finally(shortcut.onSettled);
+  }, [repoStateReady, shortcut]);
 
   const menu = (
-    <div
-      ref={menuRef}
-      className="commit-context-menu"
-      style={{
-        position: "fixed",
-        top: position ? position.top : -9999,
-        left: position ? position.left : -9999,
-        zIndex: 9999,
-        maxHeight: "calc(100vh - 8px)",
-        overflowY: "auto",
-        visibility: position ? "visible" : "hidden",
-      }}
-    >
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
-          onClick={item.disabled ? undefined : item.action}
-          aria-disabled={item.disabled || undefined}
-        >
-          <span className="commit-context-menu-icon">{item.icon ?? null}</span>
-          {item.label}
-        </div>
-      ))}
+    <>
+      {!shortcut && (
+        <NativeContextMenu
+          x={x}
+          y={y}
+          section="commit"
+          items={items}
+          ready={repoStateReady}
+        />
+      )}
       {squashDialogOpen && (
         <div
           className="squash-message-modal"
@@ -650,7 +451,7 @@ export function CommitContextMenu({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 
   return createPortal(menu, document.body);

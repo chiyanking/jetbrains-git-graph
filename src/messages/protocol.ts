@@ -125,7 +125,43 @@ export type EventType =
   | "operationStart"
   | "operationEnd"
   | "commitStateChanged"
-  | "rollbackPanelInit";
+  | "rollbackPanelInit"
+  | "nativeMenuAction"
+  | "commitShortcut"
+  | "commitResetShortcut"
+  | "workingFileShortcut";
+
+export interface NativeMenuActionEvent {
+  menuId: string;
+  action: string;
+}
+
+export interface CommitResetShortcutEvent {
+  mode: "mixed" | "soft" | "hard";
+}
+
+export interface CommitShortcutEvent {
+  action:
+    | "copyHash"
+    | "cherryPick"
+    | "editMessage"
+    | "checkoutRevision"
+    | "revertCommit"
+    | "newBranch"
+    | "newTag";
+}
+
+export interface WorkingFileShortcutEvent {
+  action:
+    | "showDiff"
+    | "jumpToSource"
+    | "systemFolder"
+    | "stage"
+    | "unstage"
+    | "shelve"
+    | "rollback"
+    | "delete";
+}
 
 export interface RemoteBranchGroup {
   remote: string;

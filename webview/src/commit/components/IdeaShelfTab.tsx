@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { NativeContextMenu } from "../../shared/components/NativeContextMenu";
 import {
   type IdeaShelfEntry,
   useCommitStore,
@@ -11,17 +12,20 @@ export function IdeaShelfTab() {
   const { ideaShelves, fetchIdeaShelves } = useCommitStore();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     entry: IdeaShelfEntry;
   } | null>(null);
   const [fileContextMenu, setFileContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     filePath: string;
     shelfName: string;
   } | null>(null);
   const [bgContextMenu, setBgContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
   } | null>(null);
@@ -47,7 +51,12 @@ export function IdeaShelfTab() {
       e.preventDefault();
       e.stopPropagation();
       setFileContextMenu(null);
-      setContextMenu({ x: e.clientX, y: e.clientY, entry });
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        entry,
+      });
     },
     [],
   );
@@ -57,7 +66,13 @@ export function IdeaShelfTab() {
       e.preventDefault();
       e.stopPropagation();
       setContextMenu(null);
-      setFileContextMenu({ x: e.clientX, y: e.clientY, filePath, shelfName });
+      setFileContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        filePath,
+        shelfName,
+      });
     },
     [],
   );
@@ -77,7 +92,11 @@ export function IdeaShelfTab() {
     e.stopPropagation();
     setContextMenu(null);
     setFileContextMenu(null);
-    setBgContextMenu({ x: e.clientX, y: e.clientY });
+    setBgContextMenu({
+      requestId: crypto.randomUUID(),
+      x: e.clientX,
+      y: e.clientY,
+    });
   }, []);
 
   const closeBgContextMenu = useCallback(() => {
@@ -96,6 +115,7 @@ export function IdeaShelfTab() {
         </div>
         {bgContextMenu && (
           <ShelfBgContextMenu
+            key={bgContextMenu.requestId}
             x={bgContextMenu.x}
             y={bgContextMenu.y}
             onClose={closeBgContextMenu}
@@ -119,6 +139,7 @@ export function IdeaShelfTab() {
       ))}
       {contextMenu && (
         <IdeaShelfContextMenu
+          key={contextMenu.requestId}
           x={contextMenu.x}
           y={contextMenu.y}
           entry={contextMenu.entry}
@@ -127,6 +148,7 @@ export function IdeaShelfTab() {
       )}
       {fileContextMenu && (
         <IdeaShelfFileContextMenu
+          key={fileContextMenu.requestId}
           x={fileContextMenu.x}
           y={fileContextMenu.y}
           filePath={fileContextMenu.filePath}
@@ -136,6 +158,7 @@ export function IdeaShelfTab() {
       )}
       {bgContextMenu && (
         <ShelfBgContextMenu
+          key={bgContextMenu.requestId}
           x={bgContextMenu.x}
           y={bgContextMenu.y}
           onClose={closeBgContextMenu}
@@ -269,111 +292,31 @@ function ShelfBgContextMenu({
   y: number;
   onClose: () => void;
 }) {
-  const menuRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (!node) return;
-      const handleClick = (e: MouseEvent) => {
-        if (!node.contains(e.target as Node)) onClose();
-      };
-      const handleKey = (e: KeyboardEvent) => {
-        if (e.key === "Escape") onClose();
-      };
-      document.addEventListener("mousedown", handleClick);
-      document.addEventListener("keydown", handleKey);
-      return () => {
-        document.removeEventListener("mousedown", handleClick);
-        document.removeEventListener("keydown", handleKey);
-      };
-    },
-    [onClose],
-  );
-
-  const handleImport = useCallback(() => {
-    import("../../shared/bridge").then(({ bridge }) => {
-      bridge.request("importPatches");
-    });
-    onClose();
-  }, [onClose]);
-
   return (
-    <div
-      className="commit-context-menu"
-      ref={menuRef}
-      style={{ position: "fixed", left: x, top: y, zIndex: 1000 }}
-    >
-      <button
-        type="button"
-        className="commit-context-menu-item"
-        onClick={handleImport}
-      >
-        <ImportIcon />
-        <span>Import Patches...</span>
-      </button>
-      <button
-        type="button"
-        className="commit-context-menu-item"
-        onClick={() => {
-          import("../../shared/bridge").then(({ bridge }) => {
-            bridge.request("importPatchFromClipboard");
-          });
-          onClose();
-        }}
-      >
-        <ClipboardImportIcon />
-        <span>Import Patches from Clipboard</span>
-      </button>
-    </div>
-  );
-}
-
-function ImportIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="commit-context-menu-icon"
-    >
-      <path
-        d="M8 2V10M8 10L5 7M8 10L11 7"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 12V13.5C2 14.0523 2.44772 14.5 3 14.5H13C13.5523 14.5 14 14.0523 14 13.5V12"
-        stroke="currentColor"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ClipboardImportIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      className="commit-context-menu-icon"
-    >
-      <path
-        d="M5 2H4C3.44772 2 3 2.44772 3 3V13C3 13.5523 3.44772 14 5 14H11C11.5523 14 12 13.5523 12 13V12"
-        stroke="currentColor"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 2.5C6 1.67157 6.67157 1 7.5 1H8.5C9.32843 1 10 1.67157 10 2.5V3H6V2.5Z"
-        stroke="currentColor"
-      />
-      <path
-        d="M10 7V11M10 11L8 9M10 11L12 9"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <NativeContextMenu
+      x={x}
+      y={y}
+      section="shelfBackground"
+      items={[
+        {
+          id: "importPatches",
+          action: () => {
+            import("../../shared/bridge").then(({ bridge }) =>
+              bridge.request("importPatches"),
+            );
+            onClose();
+          },
+        },
+        {
+          id: "importClipboard",
+          action: () => {
+            import("../../shared/bridge").then(({ bridge }) =>
+              bridge.request("importPatchFromClipboard"),
+            );
+            onClose();
+          },
+        },
+      ]}
+    />
   );
 }

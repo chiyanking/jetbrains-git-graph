@@ -167,6 +167,297 @@
         "title": "(GitLog) Edit Source",
         "icon": "$(go-to-file)",
         "category": "GitLog"
+      },
+      {
+        "command": "git-brains.context.copyHash",
+        "title": "Copy Revision Number",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_copyHash"
+      },
+      {
+        "command": "git-brains.context.cherryPick",
+        "title": "Cherry-Pick",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_cherryPick"
+      },
+      {
+        "command": "git-brains.context.squash",
+        "title": "Squash Commits…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_squash"
+      },
+      {
+        "command": "git-brains.context.editMessage",
+        "title": "Edit Commit Message",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_editMessage"
+      },
+      {
+        "command": "git-brains.context.resetMixed",
+        "title": "Reset to Here (Mixed)",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_resetMixed"
+      },
+      {
+        "command": "git-brains.context.resetSoft",
+        "title": "Reset to Here (Soft)",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_resetSoft"
+      },
+      {
+        "command": "git-brains.context.resetHard",
+        "title": "Reset to Here (Hard)",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_resetHard"
+      },
+      {
+        "command": "git-brains.context.checkoutRevision",
+        "title": "Checkout Revision",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_checkoutRevision"
+      },
+      {
+        "command": "git-brains.context.revertCommit",
+        "title": "Revert Commit",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_revertCommit"
+      },
+      {
+        "command": "git-brains.context.newBranch",
+        "title": "New Branch…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_newBranch"
+      },
+      {
+        "command": "git-brains.context.newTag",
+        "title": "New Tag…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_newTag"
+      },
+      {
+        "command": "git-brains.context.showInLog",
+        "title": "Show in Git Log",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_showInLog"
+      },
+      {
+        "command": "git-brains.context.dropCommit",
+        "title": "Drop Commit…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_dropCommit"
+      },
+      {
+        "command": "git-brains.context.showDiff",
+        "title": "Show Diff",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_showDiff"
+      },
+      {
+        "command": "git-brains.context.editSource",
+        "title": "Edit Source",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_editSource"
+      },
+      {
+        "command": "git-brains.context.repoVersion",
+        "title": "Open Repository Version",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_repoVersion"
+      },
+      {
+        "command": "git-brains.context.revertFile",
+        "title": "Revert Selected Changes",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_revertFile"
+      },
+      {
+        "command": "git-brains.context.cherryPickFile",
+        "title": "Cherry-Pick Selected Changes",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_cherryPickFile"
+      },
+      {
+        "command": "git-brains.context.copyPath",
+        "title": "Copy Path",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_copyPath"
+      },
+      {
+        "command": "git-brains.context.copyFileName",
+        "title": "Copy File Name",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_copyFileName"
+      },
+      {
+        "command": "git-brains.context.history",
+        "title": "History Up to Here",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_history"
+      },
+      {
+        "command": "git-brains.context.jumpToSource",
+        "title": "Jump to Source",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_jumpToSource"
+      },
+      {
+        "command": "git-brains.context.systemFolder",
+        "title": "Open in System Folder",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_systemFolder"
+      },
+      {
+        "command": "git-brains.context.stage",
+        "title": "Add to VCS",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_stage"
+      },
+      {
+        "command": "git-brains.context.unstage",
+        "title": "Unstage",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_unstage"
+      },
+      {
+        "command": "git-brains.context.shelve",
+        "title": "Shelve Changes…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_shelve"
+      },
+      {
+        "command": "git-brains.context.rollback",
+        "title": "Rollback…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_rollback"
+      },
+      {
+        "command": "git-brains.context.delete",
+        "title": "Delete…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_delete"
+      },
+      {
+        "command": "git-brains.context.deleteDirectory",
+        "title": "Delete Directory…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_deleteDirectory"
+      },
+      {
+        "command": "git-brains.context.unshelve",
+        "title": "Unshelve…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_unshelve"
+      },
+      {
+        "command": "git-brains.context.restore",
+        "title": "Restore",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_restore"
+      },
+      {
+        "command": "git-brains.context.unshelveFile",
+        "title": "Unshelve This File",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_unshelveFile"
+      },
+      {
+        "command": "git-brains.context.createPatch",
+        "title": "Create Patch…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_createPatch"
+      },
+      {
+        "command": "git-brains.context.copyPatch",
+        "title": "Copy as Patch to Clipboard",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_copyPatch"
+      },
+      {
+        "command": "git-brains.context.importPatches",
+        "title": "Import Patches…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_importPatches"
+      },
+      {
+        "command": "git-brains.context.importClipboard",
+        "title": "Import Patches from Clipboard",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_importClipboard"
+      },
+      {
+        "command": "git-brains.context.checkoutBranch",
+        "title": "Checkout",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_checkoutBranch"
+      },
+      {
+        "command": "git-brains.context.branchFromSelected",
+        "title": "New Branch from Selected…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_branchFromSelected"
+      },
+      {
+        "command": "git-brains.context.checkoutRebase",
+        "title": "Checkout and Rebase onto Current",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_checkoutRebase"
+      },
+      {
+        "command": "git-brains.context.rebaseBranch",
+        "title": "Rebase Current onto Selected",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_rebaseBranch"
+      },
+      {
+        "command": "git-brains.context.mergeBranch",
+        "title": "Merge Selected into Current",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_mergeBranch"
+      },
+      {
+        "command": "git-brains.context.renameBranch",
+        "title": "Rename…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_renameBranch"
+      },
+      {
+        "command": "git-brains.context.deleteBranch",
+        "title": "Delete Branch…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_deleteBranch"
+      },
+      {
+        "command": "git-brains.context.updateBranch",
+        "title": "Update",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_updateBranch"
+      },
+      {
+        "command": "git-brains.context.pushBranch",
+        "title": "Push…",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_pushBranch"
+      },
+      {
+        "command": "git-brains.context.columnAuthor",
+        "title": "Author",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_columnAuthor",
+        "toggled": "gitBrainsChecked_columnAuthor"
+      },
+      {
+        "command": "git-brains.context.columnDate",
+        "title": "Date",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_columnDate",
+        "toggled": "gitBrainsChecked_columnDate"
+      },
+      {
+        "command": "git-brains.context.columnHash",
+        "title": "Hash",
+        "category": "GitLog",
+        "enablement": "!gitBrainsDisabled_columnHash",
+        "toggled": "gitBrainsChecked_columnHash"
       }
     ],
     "menus": {
@@ -203,9 +494,645 @@
           "when": "!explorerResourceIsFolder",
           "group": "git@1"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "git-brains.context.copyHash",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.cherryPick",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.squash",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.editMessage",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.resetMixed",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.resetSoft",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.resetHard",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.checkoutRevision",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.revertCommit",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.newBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.newTag",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.showInLog",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.dropCommit",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.showDiff",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.editSource",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.repoVersion",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.revertFile",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.cherryPickFile",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.copyFileName",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.history",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.jumpToSource",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.systemFolder",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.stage",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.unstage",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.shelve",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.rollback",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.delete",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.deleteDirectory",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.unshelve",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.restore",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.unshelveFile",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.createPatch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.copyPatch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.importPatches",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.importClipboard",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.checkoutBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.branchFromSelected",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.checkoutRebase",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.rebaseBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.mergeBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.renameBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.deleteBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.updateBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.pushBranch",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.columnAuthor",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.columnDate",
+          "when": "false"
+        },
+        {
+          "command": "git-brains.context.columnHash",
+          "when": "false"
+        }
+      ],
+      "webview/context": [
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.copyHash",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_copyHash"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.cherryPick",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_cherryPick"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.squash",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_squash"
+        },
+        {
+          "group": "gitBrains_02@3",
+          "command": "git-brains.context.editMessage",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_editMessage"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.resetMixed",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_resetMixed"
+        },
+        {
+          "group": "gitBrains_03@2",
+          "command": "git-brains.context.resetSoft",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_resetSoft"
+        },
+        {
+          "group": "gitBrains_03@3",
+          "command": "git-brains.context.resetHard",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_resetHard"
+        },
+        {
+          "group": "gitBrains_04@1",
+          "command": "git-brains.context.checkoutRevision",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_checkoutRevision"
+        },
+        {
+          "group": "gitBrains_04@2",
+          "command": "git-brains.context.revertCommit",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_revertCommit"
+        },
+        {
+          "group": "gitBrains_05@1",
+          "command": "git-brains.context.newBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_newBranch"
+        },
+        {
+          "group": "gitBrains_05@2",
+          "command": "git-brains.context.newTag",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_newTag"
+        },
+        {
+          "group": "gitBrains_06@1",
+          "command": "git-brains.context.showInLog",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_showInLog"
+        },
+        {
+          "group": "gitBrains_07@1",
+          "command": "git-brains.context.dropCommit",
+          "when": "webviewId == git-brains.gitLog && webviewSection == commit && gitBrainsMenu_dropCommit"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.showDiff",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_showDiff"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.editSource",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_editSource"
+        },
+        {
+          "group": "gitBrains_01@3",
+          "command": "git-brains.context.repoVersion",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_repoVersion"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.revertFile",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_revertFile"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.cherryPickFile",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_cherryPickFile"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.copyPath",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_copyPath"
+        },
+        {
+          "group": "gitBrains_03@2",
+          "command": "git-brains.context.copyFileName",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_copyFileName"
+        },
+        {
+          "group": "gitBrains_04@1",
+          "command": "git-brains.context.history",
+          "when": "webviewId == git-brains.gitLog && webviewSection == logFile && gitBrainsMenu_history"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.showDiff",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_showDiff"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.jumpToSource",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_jumpToSource"
+        },
+        {
+          "group": "gitBrains_01@3",
+          "command": "git-brains.context.systemFolder",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_systemFolder"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.stage",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_stage"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.unstage",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_unstage"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.shelve",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_shelve"
+        },
+        {
+          "group": "gitBrains_04@1",
+          "command": "git-brains.context.rollback",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_rollback"
+        },
+        {
+          "group": "gitBrains_04@2",
+          "command": "git-brains.context.delete",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingFile && gitBrainsMenu_delete"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.unshelve",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stash && gitBrainsMenu_unshelve"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.restore",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stash && gitBrainsMenu_restore"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.delete",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stash && gitBrainsMenu_delete"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.unshelveFile",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stashFile && gitBrainsMenu_unshelveFile"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.showDiff",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stashFile && gitBrainsMenu_showDiff"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.jumpToSource",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stashFile && gitBrainsMenu_jumpToSource"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.copyPath",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == stashFile && gitBrainsMenu_copyPath"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.unshelve",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_unshelve"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.restore",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_restore"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.createPatch",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_createPatch"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.copyPatch",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_copyPatch"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.importPatches",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_importPatches"
+        },
+        {
+          "group": "gitBrains_03@2",
+          "command": "git-brains.context.importClipboard",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_importClipboard"
+        },
+        {
+          "group": "gitBrains_04@1",
+          "command": "git-brains.context.delete",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelf && gitBrainsMenu_delete"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.showDiff",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelfFile && gitBrainsMenu_showDiff"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.jumpToSource",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelfFile && gitBrainsMenu_jumpToSource"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.copyPath",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelfFile && gitBrainsMenu_copyPath"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.systemFolder",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingDirectory && gitBrainsMenu_systemFolder"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.rollback",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingDirectory && gitBrainsMenu_rollback"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.deleteDirectory",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == workingDirectory && gitBrainsMenu_deleteDirectory"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.importPatches",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelfBackground && gitBrainsMenu_importPatches"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.importClipboard",
+          "when": "webviewId == git-brains.commitPanel && webviewSection == shelfBackground && gitBrainsMenu_importClipboard"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.checkoutBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_checkoutBranch"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.branchFromSelected",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_branchFromSelected"
+        },
+        {
+          "group": "gitBrains_02@1",
+          "command": "git-brains.context.checkoutRebase",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_checkoutRebase"
+        },
+        {
+          "group": "gitBrains_02@2",
+          "command": "git-brains.context.rebaseBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_rebaseBranch"
+        },
+        {
+          "group": "gitBrains_02@3",
+          "command": "git-brains.context.mergeBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_mergeBranch"
+        },
+        {
+          "group": "gitBrains_03@1",
+          "command": "git-brains.context.renameBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_renameBranch"
+        },
+        {
+          "group": "gitBrains_03@2",
+          "command": "git-brains.context.deleteBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_deleteBranch"
+        },
+        {
+          "group": "gitBrains_04@1",
+          "command": "git-brains.context.updateBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_updateBranch"
+        },
+        {
+          "group": "gitBrains_04@2",
+          "command": "git-brains.context.pushBranch",
+          "when": "webviewId == git-brains.gitLog && webviewSection == branch && gitBrainsMenu_pushBranch"
+        },
+        {
+          "group": "gitBrains_01@1",
+          "command": "git-brains.context.columnAuthor",
+          "when": "webviewId == git-brains.gitLog && webviewSection == columns && gitBrainsMenu_columnAuthor"
+        },
+        {
+          "group": "gitBrains_01@2",
+          "command": "git-brains.context.columnDate",
+          "when": "webviewId == git-brains.gitLog && webviewSection == columns && gitBrainsMenu_columnDate"
+        },
+        {
+          "group": "gitBrains_01@3",
+          "command": "git-brains.context.columnHash",
+          "when": "webviewId == git-brains.gitLog && webviewSection == columns && gitBrainsMenu_columnHash"
+        }
       ]
     },
     "keybindings": [
+      {
+        "command": "git-brains.context.copyHash",
+        "key": "ctrl+alt+shift+c",
+        "mac": "cmd+alt+shift+c",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.cherryPick",
+        "key": "ctrl+alt+shift+p",
+        "mac": "cmd+alt+shift+p",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.editMessage",
+        "key": "ctrl+alt+shift+e",
+        "mac": "cmd+alt+shift+e",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.checkoutRevision",
+        "key": "ctrl+alt+shift+o",
+        "mac": "cmd+alt+shift+o",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.revertCommit",
+        "key": "ctrl+alt+shift+v",
+        "mac": "cmd+alt+shift+v",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.newBranch",
+        "key": "ctrl+alt+shift+b",
+        "mac": "cmd+alt+shift+b",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.newTag",
+        "key": "ctrl+alt+shift+t",
+        "mac": "cmd+alt+shift+t",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding", "section": "commit" }
+      },
+      {
+        "command": "git-brains.context.showDiff",
+        "key": "ctrl+d",
+        "mac": "cmd+d",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.jumpToSource",
+        "key": "f4",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.systemFolder",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.stage",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.unstage",
+        "key": "ctrl+alt+shift+a",
+        "mac": "cmd+alt+shift+a",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.shelve",
+        "key": "ctrl+alt+shift+s",
+        "mac": "cmd+alt+shift+s",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.rollback",
+        "key": "ctrl+alt+z",
+        "mac": "cmd+alt+z",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.delete",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "focusedView == git-brains.commitPanel && !inputFocus",
+        "args": { "source": "keybinding", "section": "workingFile" }
+      },
+      {
+        "command": "git-brains.context.resetMixed",
+        "key": "ctrl+alt+shift+m",
+        "mac": "cmd+alt+shift+m",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding" }
+      },
+      {
+        "command": "git-brains.context.resetSoft",
+        "key": "ctrl+alt+shift+s",
+        "mac": "cmd+alt+shift+s",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding" }
+      },
+      {
+        "command": "git-brains.context.resetHard",
+        "key": "ctrl+alt+shift+h",
+        "mac": "cmd+alt+shift+h",
+        "when": "focusedView == git-brains.gitLog && !inputFocus",
+        "args": { "source": "keybinding" }
+      },
       {
         "command": "git-brains.openPushPanel",
         "key": "ctrl+shift+k",

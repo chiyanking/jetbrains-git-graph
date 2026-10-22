@@ -2,9 +2,11 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { bridge } from "../../shared/bridge";
+import { NativeContextMenu } from "../../shared/components/NativeContextMenu";
 import { useModifierClickSelection } from "../../shared/hooks/useModifierClickSelection";
 import { usePanelStore } from "../../shared/store/panel-store";
 import type { Commit } from "../../shared/types/git";
+import { useCommitShortcuts } from "../hooks/useCommitShortcuts";
 import { CommitContextMenu } from "./CommitContextMenu";
 import {
   type ColumnWidths,
@@ -30,6 +32,8 @@ export function CommitList({
   onScroll?: (scrollTop: number) => void;
   onHeaderHeight?: (height: number) => void;
 }) {
+  const { request: shortcutRequest, finish: finishShortcut } =
+    useCommitShortcuts();
   const visibleCommits = usePanelStore((s) => s.visibleCommits);
   const graphLayout = usePanelStore((s) => s.graphLayout);
   const hasMore = usePanelStore((s) => s.hasMore);
@@ -43,6 +47,7 @@ export function CommitList({
   );
   const visibleColumns = usePanelStore((s) => s.visibleColumns);
   const [headerMenu, setHeaderMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
   } | null>(null);
@@ -50,6 +55,7 @@ export function CommitList({
   columnWidthsRef.current = columnWidths;
 
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     commit: Commit;
@@ -63,7 +69,12 @@ export function CommitList({
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, commit: Commit) => {
-      setContextMenu({ x: e.clientX, y: e.clientY, commit });
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        commit,
+      });
     },
     [],
   );
@@ -71,6 +82,10 @@ export function CommitList({
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  useEffect(() => {
+    if (shortcutRequest) setContextMenu(null);
+  }, [shortcutRequest]);
 
   const maxColumn = Math.max(
     0,
@@ -314,7 +329,11 @@ export function CommitList({
       <div
         onContextMenu={(e) => {
           e.preventDefault();
-          setHeaderMenu({ x: e.clientX, y: e.clientY });
+          setHeaderMenu({
+            requestId: crypto.randomUUID(),
+            x: e.clientX,
+            y: e.clientY,
+          });
         }}
         style={{
           display: "flex",
@@ -390,6 +409,7 @@ export function CommitList({
       {/* Column header context menu */}
       {headerMenu && (
         <HeaderColumnMenu
+          key={headerMenu.requestId}
           x={headerMenu.x}
           y={headerMenu.y}
           visibleColumns={visibleColumns}
@@ -447,6 +467,7 @@ export function CommitList({
         </div>
         {contextMenu && (
           <CommitContextMenu
+            key={contextMenu.requestId}
             x={contextMenu.x}
             y={contextMenu.y}
             commit={contextMenu.commit}
@@ -455,6 +476,22 @@ export function CommitList({
               closeContextMenu();
               const shortHash = hash.slice(0, 8);
               setCreateBranchDialog({ hash, shortHash });
+            }}
+          />
+        )}
+        {shortcutRequest && (
+          <CommitContextMenu
+            key={shortcutRequest.id}
+            x={0}
+            y={0}
+            commit={shortcutRequest.commit}
+            shortcut={{
+              action: shortcutRequest.action,
+              onSettled: () => finishShortcut(shortcutRequest.id, "settled"),
+            }}
+            onClose={() => finishShortcut(shortcutRequest.id, "closed")}
+            onCreateBranch={(hash) => {
+              setCreateBranchDialog({ hash, shortHash: hash.slice(0, 8) });
             }}
           />
         )}
@@ -554,56 +591,37 @@ function HeaderColumnMenu({
   onToggle: (col: keyof VisibleColumns) => void;
   onClose: () => void;
 }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", handleClick, true);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick, true);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [onClose]);
-
-  const columns: { key: keyof VisibleColumns; label: string }[] = [
-    { key: "author", label: "Author" },
-    { key: "date", label: "Date" },
-    { key: "hash", label: "Hash" },
-  ];
-
   return (
-    <div
-      ref={menuRef}
-      className="commit-context-menu"
-      style={{
-        position: "fixed",
-        left: x,
-        top: y,
-        zIndex: 10000,
-      }}
-    >
-      <div className="commit-context-menu-header">Columns</div>
-      {columns.map((col) => (
-        <button
-          key={col.key}
-          type="button"
-          className="commit-context-menu-item"
-          onClick={() => onToggle(col.key)}
-        >
-          <span style={{ width: 16, display: "inline-block" }}>
-            {visibleColumns[col.key] ? "✓" : ""}
-          </span>
-          <span>{col.label}</span>
-        </button>
-      ))}
-    </div>
+    <NativeContextMenu
+      x={x}
+      y={y}
+      section="columns"
+      items={[
+        {
+          id: "columnAuthor",
+          checked: visibleColumns.author,
+          action: () => {
+            onToggle("author");
+            onClose();
+          },
+        },
+        {
+          id: "columnDate",
+          checked: visibleColumns.date,
+          action: () => {
+            onToggle("date");
+            onClose();
+          },
+        },
+        {
+          id: "columnHash",
+          checked: visibleColumns.hash,
+          action: () => {
+            onToggle("hash");
+            onClose();
+          },
+        },
+      ]}
+    />
   );
 }

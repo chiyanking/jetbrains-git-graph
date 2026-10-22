@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { bridge, bridgeWithProgress } from "../../shared/bridge";
+import {
+  NativeContextMenu,
+  type NativeMenuItem,
+} from "../../shared/components/NativeContextMenu";
 import { Tooltip } from "../../shared/components/Tooltip";
 import { useModifierClickSelection } from "../../shared/hooks/useModifierClickSelection";
 import { usePreventSelect } from "../../shared/hooks/usePreventSelect";
@@ -314,6 +318,7 @@ export function BranchTree({
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     branch: BranchInfo;
@@ -334,7 +339,12 @@ export function BranchTree({
     (e: React.MouseEvent, branch: BranchInfo) => {
       e.preventDefault();
       e.stopPropagation();
-      setContextMenu({ x: e.clientX, y: e.clientY, branch });
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        branch,
+      });
     },
     [],
   );
@@ -617,6 +627,7 @@ export function BranchTree({
         {contextMenu &&
           createPortal(
             <BranchContextMenu
+              key={contextMenu.requestId}
               x={contextMenu.x}
               y={contextMenu.y}
               branch={contextMenu.branch}
@@ -1010,89 +1021,6 @@ function BranchContextMenu({
   onCreateBranch: (startPoint: string, defaultName: string) => void;
   onPush: (branchName: string) => void;
 }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
-
-  // Adjust position after first render to keep menu within viewport
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-
-    // Use requestAnimationFrame to ensure the menu is rendered and measurable
-    requestAnimationFrame(() => {
-      const rect = menu.getBoundingClientRect();
-      const viewportH = window.innerHeight;
-      const viewportW = window.innerWidth;
-
-      let top = y;
-      let left = x;
-
-      // If menu overflows bottom, show above cursor or clamp to bottom
-      if (top + rect.height > viewportH) {
-        // Try showing above the click point
-        const above = y - rect.height;
-        if (above >= 4) {
-          top = above;
-        } else {
-          top = Math.max(4, viewportH - rect.height - 4);
-        }
-      }
-      // If menu overflows right
-      if (left + rect.width > viewportW) {
-        left = Math.max(4, viewportW - rect.width - 4);
-      }
-
-      setPosition({ top, left });
-    });
-  }, [x, y]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    const handleBlur = () => {
-      onClose();
-    };
-    const handleScroll = (e: Event) => {
-      // Only close if scroll happens outside the menu itself
-      if (
-        menuRef.current &&
-        e.target instanceof Node &&
-        !menuRef.current.contains(e.target)
-      ) {
-        onClose();
-      }
-    };
-    const handleContextMenu = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    // Use capture phase to intercept clicks before any other handler
-    document.addEventListener("mousedown", handleClickOutside, true);
-    document.addEventListener("contextmenu", handleContextMenu, true);
-    document.addEventListener("keydown", handleEscape);
-    window.addEventListener("blur", handleBlur);
-    document.addEventListener("scroll", handleScroll, true);
-    window.addEventListener("resize", handleBlur);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside, true);
-      document.removeEventListener("contextmenu", handleContextMenu, true);
-      document.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("scroll", handleScroll, true);
-      window.removeEventListener("resize", handleBlur);
-    };
-  }, [onClose]);
-
   const isCurrent = branch.name === currentBranch;
 
   const handleCheckout = async () => {
@@ -1230,74 +1158,24 @@ function BranchContextMenu({
     }
   };
 
-  const items: {
-    label: string;
-    action: () => void;
-    disabled?: boolean;
-  }[] = [];
-
+  const items: NativeMenuItem[] = [];
+  if (!isCurrent) items.push({ id: "checkoutBranch", action: handleCheckout });
+  items.push({ id: "branchFromSelected", action: handleNewBranch });
   if (!isCurrent) {
-    items.push({ label: "Checkout", action: handleCheckout });
+    items.push(
+      { id: "checkoutRebase", action: handleCheckoutAndRebase },
+      { id: "rebaseBranch", action: handleRebase },
+      { id: "mergeBranch", action: handleMerge },
+    );
+    if (!branch.isRemote)
+      items.push({ id: "renameBranch", action: handleRename });
+    items.push({ id: "deleteBranch", action: handleDelete });
   }
-  items.push({
-    label: `New Branch from '${branch.name}'...`,
-    action: handleNewBranch,
-  });
-  if (!isCurrent) {
-    items.push({
-      label: `Checkout and Rebase onto '${currentBranch}'`,
-      action: handleCheckoutAndRebase,
-    });
-  }
-
-  if (!isCurrent) {
-    items.push({
-      label: `Rebase '${currentBranch}' onto '${branch.name}'`,
-      action: handleRebase,
-    });
-    items.push({
-      label: `Merge '${branch.name}' into '${currentBranch}'`,
-      action: handleMerge,
-    });
-  }
-
-  if (!isCurrent) {
-    if (!branch.isRemote) {
-      items.push({ label: "Rename...", action: handleRename });
-    }
-    items.push({ label: "Delete", action: handleDelete });
-  }
-
   if (!branch.isRemote) {
-    items.push({ label: "Update", action: handleUpdate });
-    items.push({ label: "Push...", action: handlePush });
+    items.push(
+      { id: "updateBranch", action: handleUpdate },
+      { id: "pushBranch", action: handlePush },
+    );
   }
-
-  if (items.length === 0) return null;
-
-  return (
-    <div
-      ref={menuRef}
-      className="commit-context-menu"
-      style={{
-        position: "fixed",
-        top: position ? position.top : -9999,
-        left: position ? position.left : -9999,
-        zIndex: 9999,
-        maxHeight: "calc(100vh - 8px)",
-        overflowY: "auto",
-        visibility: position ? "visible" : "hidden",
-      }}
-    >
-      {items.map((item) => (
-        <div
-          key={item.label}
-          onClick={item.disabled ? undefined : item.action}
-          className={`commit-context-menu-item${item.disabled ? " is-disabled" : ""}`}
-        >
-          {item.label}
-        </div>
-      ))}
-    </div>
-  );
+  return <NativeContextMenu x={x} y={y} section="branch" items={items} />;
 }

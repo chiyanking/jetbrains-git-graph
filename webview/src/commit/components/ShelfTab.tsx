@@ -11,11 +11,13 @@ export function ShelfTab() {
   const { shelves, fetchShelves } = useCommitStore();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     entry: ShelveEntry;
   } | null>(null);
   const [fileContextMenu, setFileContextMenu] = useState<{
+    requestId: string;
     x: number;
     y: number;
     filePath: string;
@@ -43,7 +45,12 @@ export function ShelfTab() {
       e.preventDefault();
       e.stopPropagation();
       setFileContextMenu(null);
-      setContextMenu({ x: e.clientX, y: e.clientY, entry });
+      setContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        entry,
+      });
     },
     [],
   );
@@ -53,7 +60,13 @@ export function ShelfTab() {
       e.preventDefault();
       e.stopPropagation();
       setContextMenu(null);
-      setFileContextMenu({ x: e.clientX, y: e.clientY, filePath, stashId });
+      setFileContextMenu({
+        requestId: crypto.randomUUID(),
+        x: e.clientX,
+        y: e.clientY,
+        filePath,
+        stashId,
+      });
     },
     [],
   );
@@ -94,6 +107,7 @@ export function ShelfTab() {
       ))}
       {contextMenu && (
         <ShelfContextMenu
+          key={contextMenu.requestId}
           x={contextMenu.x}
           y={contextMenu.y}
           entry={contextMenu.entry}
@@ -102,6 +116,7 @@ export function ShelfTab() {
       )}
       {fileContextMenu && (
         <ShelfFileContextMenu
+          key={fileContextMenu.requestId}
           x={fileContextMenu.x}
           y={fileContextMenu.y}
           filePath={fileContextMenu.filePath}

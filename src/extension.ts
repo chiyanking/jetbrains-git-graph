@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 import { GitService } from "./git/gitService";
 import type { DiffFile, LaneSnapshot } from "./git/types";
 import { MessageRouter } from "./messages/messageRouter";
+import { registerNativeContextMenuCommands } from "./messages/nativeContextMenu";
 import { ErrorCode } from "./messages/protocol";
 import { CommitViewProvider } from "./views/commitViewProvider";
 import { ConflictsManager } from "./views/conflictsManager";
@@ -39,6 +40,7 @@ function withProgress(
 export async function activate(context: vscode.ExtensionContext) {
   // 1. MessageRouter (always created)
   const messageRouter = new MessageRouter();
+  registerNativeContextMenuCommands(context, messageRouter);
 
   // 2. GitLogViewProvider (always registered)
   const logProvider = new GitLogViewProvider(
